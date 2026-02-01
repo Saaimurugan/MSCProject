@@ -6,7 +6,23 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from shared.db_models import User
 from shared.auth_utils import generate_jwt_token, hash_password
 
+def get_cors_headers():
+    return {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
+        'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS'
+    }
+
 def lambda_handler(event, context):
+    # Handle OPTIONS request for CORS preflight
+    if event.get('httpMethod') == 'OPTIONS':
+        return {
+            'statusCode': 200,
+            'headers': get_cors_headers(),
+            'body': ''
+        }
+    
     try:
         body = json.loads(event['body'])
         email = body.get('email')
@@ -17,7 +33,7 @@ def lambda_handler(event, context):
         if not email or not password or not name:
             return {
                 'statusCode': 400,
-                'headers': {'Content-Type': 'application/json'},
+                'headers': get_cors_headers(),
                 'body': json.dumps({'error': 'Email, password, and name are required'})
             }
         
@@ -28,7 +44,7 @@ def lambda_handler(event, context):
         if existing_user:
             return {
                 'statusCode': 409,
-                'headers': {'Content-Type': 'application/json'},
+                'headers': get_cors_headers(),
                 'body': json.dumps({'error': 'User already exists'})
             }
         
@@ -47,7 +63,7 @@ def lambda_handler(event, context):
         
         return {
             'statusCode': 201,
-            'headers': {'Content-Type': 'application/json'},
+            'headers': get_cors_headers(),
             'body': json.dumps({
                 'token': token,
                 'user': {
@@ -62,6 +78,6 @@ def lambda_handler(event, context):
     except Exception as e:
         return {
             'statusCode': 500,
-            'headers': {'Content-Type': 'application/json'},
+            'headers': get_cors_headers(),
             'body': json.dumps({'error': str(e)})
         }
