@@ -1,0 +1,304 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Core infrastructure for MSC Evaluate application'
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: msc-evaluate
+    Description: Name of the project
+  
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, staging, prod]
+    Description: Environment name
+  
+  JWTSecret:
+    Type: String
+    NoEcho: true
+    Description: JWT secret key for token signing
+    MinLength: 32
+
+Resources:
+  # DynamoDB Tables
+  UsersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${ProjectName}-users-${Environment}'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: user_id
+          AttributeType: S
+        - AttributeName: email
+          AttributeType: S
+      KeySchema:
+        - AttributeName: user_id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: email-index
+          KeySchema:
+            - AttributeName: email
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+
+  TemplatesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${ProjectName}-templates-${Environment}'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: template_id
+          AttributeType: S
+        - AttributeName: subject
+          AttributeType: S
+        - AttributeName: course
+          AttributeType: S
+      KeySchema:
+        - AttributeName: template_id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: subject-course-index
+          KeySchema:
+            - AttributeName: subject
+              KeyType: HASH
+            - AttributeName: course
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+
+  QuizResultsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${ProjectName}-quiz-results-${Environment}'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: result_id
+          AttributeType: S
+        - AttributeName: user_id
+          AttributeType: S
+        - AttributeName: template_id
+          AttributeType: S
+        - AttributeName: completed_at
+          AttributeType: S
+      KeySchema:
+        - AttributeName: result_id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: user-id-index
+          KeySchema:
+            - AttributeName: user_id
+              KeyType: HASH
+            - AttributeName: completed_at
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: template-id-index
+          KeySchema:
+            - AttributeName: template_id
+              KeyType: HASH
+            - AttributeName: completed_at
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+
+  # Lambda Execution Role
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${ProjectName}-lambda-role-${Environment}'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: DynamoDBAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:DeleteItem
+                  - dynamodb:Scan
+                  - dynamodb:Query
+                Resource:
+                  - !GetAtt UsersTable.Arn
+                  - !GetAtt TemplatesTable.Arn
+                  - !GetAtt QuizResultsTable.Arn
+                  - !Sub '${UsersTable.Arn}/index/*'
+                  - !Sub '${TemplatesTable.Arn}/index/*'
+                  - !Sub '${QuizResultsTable.Arn}/index/*'
+        - PolicyName: BedrockAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - bedrock:InvokeModel
+                  - bedrock:InvokeModelWithResponseStream
+                Resource: 'arn:aws:bedrock:*::foundation-model/amazon.nova-micro-v1:0'
+
+  # API Gateway
+  ApiGateway:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: !Sub '${ProjectName}-api-${Environment}'
+      Description: MSC Evaluate API
+      EndpointConfiguration:
+        Types:
+          - REGIONAL
+
+  # Lambda Functions
+  AuthLoginFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub '${ProjectName}-auth-login-${Environment}'
+      Runtime: python3.9
+      Handler: login.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          def lambda_handler(event, context):
+              return {'statusCode': 200, 'body': 'Placeholder - will be updated'}
+      Environment:
+        Variables:
+          JWT_SECRET: !Ref JWTSecret
+          USERS_TABLE: !Ref UsersTable
+          ENVIRONMENT: !Ref Environment
+      Timeout: 30
+
+  AuthSignupFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub '${ProjectName}-auth-signup-${Environment}'
+      Runtime: python3.9
+      Handler: signup.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          def lambda_handler(event, context):
+              return {'statusCode': 200, 'body': 'Placeholder - will be updated'}
+      Environment:
+        Variables:
+          JWT_SECRET: !Ref JWTSecret
+          USERS_TABLE: !Ref UsersTable
+          ENVIRONMENT: !Ref Environment
+      Timeout: 30
+
+  TemplatesGetFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub '${ProjectName}-templates-get-${Environment}'
+      Runtime: python3.9
+      Handler: get_templates.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          def lambda_handler(event, context):
+              return {'statusCode': 200, 'body': 'Placeholder - will be updated'}
+      Environment:
+        Variables:
+          JWT_SECRET: !Ref JWTSecret
+          TEMPLATES_TABLE: !Ref TemplatesTable
+          ENVIRONMENT: !Ref Environment
+      Timeout: 30
+
+  TemplatesPostFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub '${ProjectName}-templates-create-${Environment}'
+      Runtime: python3.9
+      Handler: create_template.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          def lambda_handler(event, context):
+              return {'statusCode': 200, 'body': 'Placeholder - will be updated'}
+      Environment:
+        Variables:
+          JWT_SECRET: !Ref JWTSecret
+          TEMPLATES_TABLE: !Ref TemplatesTable
+          ENVIRONMENT: !Ref Environment
+      Timeout: 30
+
+  QuizGetFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub '${ProjectName}-quiz-get-${Environment}'
+      Runtime: python3.9
+      Handler: take_quiz.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          def lambda_handler(event, context):
+              return {'statusCode': 200, 'body': 'Placeholder - will be updated'}
+      Environment:
+        Variables:
+          JWT_SECRET: !Ref JWTSecret
+          TEMPLATES_TABLE: !Ref TemplatesTable
+          ENVIRONMENT: !Ref Environment
+      Timeout: 30
+
+  QuizSubmitFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub '${ProjectName}-quiz-submit-${Environment}'
+      Runtime: python3.9
+      Handler: submit_quiz.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          def lambda_handler(event, context):
+              return {'statusCode': 200, 'body': 'Placeholder - will be updated'}
+      Environment:
+        Variables:
+          JWT_SECRET: !Ref JWTSecret
+          TEMPLATES_TABLE: !Ref TemplatesTable
+          QUIZ_RESULTS_TABLE: !Ref QuizResultsTable
+          ENVIRONMENT: !Ref Environment
+      Timeout: 60
+
+Outputs:
+  UsersTableName:
+    Description: 'Users DynamoDB table name'
+    Value: !Ref UsersTable
+    Export:
+      Name: !Sub '${AWS::StackName}-UsersTable'
+
+  TemplatesTableName:
+    Description: 'Templates DynamoDB table name'
+    Value: !Ref TemplatesTable
+    Export:
+      Name: !Sub '${AWS::StackName}-TemplatesTable'
+
+  QuizResultsTableName:
+    Description: 'Quiz Results DynamoDB table name'
+    Value: !Ref QuizResultsTable
+    Export:
+      Name: !Sub '${AWS::StackName}-QuizResultsTable'
+
+  LambdaRoleArn:
+    Description: 'Lambda execution role ARN'
+    Value: !GetAtt LambdaExecutionRole.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-LambdaRole'
+
+  ApiGatewayId:
+    Description: 'API Gateway ID'
+    Value: !Ref ApiGateway
+    Export:
+      Name: !Sub '${AWS::StackName}-ApiGateway'
