@@ -1,8 +1,42 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import {
+  Container,
+  Typography,
+  Box,
+  Grid,
+  Card,
+  CardContent,
+  CardActions,
+  Button,
+  AppBar,
+  Toolbar,
+  IconButton,
+  Menu,
+  MenuItem,
+  Chip,
+  FormControl,
+  InputLabel,
+  Select,
+  CircularProgress,
+  Alert,
+  Avatar,
+  Fab,
+  Tooltip,
+} from '@mui/material';
+import {
+  AccountCircle,
+  Logout,
+  Quiz,
+  Assessment,
+  AdminPanelSettings,
+  Add,
+  FilterList,
+  School,
+  Person,
+} from '@mui/icons-material';
 import { templatesAPI } from '../../services/api';
 import { AuthService } from '../../services/auth';
-import './Dashboard.css';
 
 const Dashboard = () => {
   const [templates, setTemplates] = useState([]);
@@ -10,6 +44,7 @@ const Dashboard = () => {
   const [error, setError] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('');
   const [selectedCourse, setCourse] = useState('');
+  const [anchorEl, setAnchorEl] = useState(null);
   const navigate = useNavigate();
   const user = AuthService.getUser();
 
@@ -37,8 +72,25 @@ const Dashboard = () => {
     navigate('/template/create');
   };
 
+  const handleMenuOpen = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+
   const handleLogout = () => {
     AuthService.logout();
+  };
+
+  const getRoleColor = (role) => {
+    switch (role) {
+      case 'admin': return 'error';
+      case 'tutor': return 'warning';
+      case 'student': return 'success';
+      default: return 'default';
+    }
   };
 
   // Group templates by subject and course
@@ -52,109 +104,216 @@ const Dashboard = () => {
   }, {});
 
   return (
-    <div className="dashboard-container">
-      <header className="dashboard-header">
-        <div className="header-content">
-          <h1>📝 MSC Evaluate Dashboard</h1>
-          <div className="user-info">
-            <span>Welcome, {user?.name} ({user?.role})</span>
-            <button onClick={handleLogout} className="btn-logout">Logout</button>
-          </div>
-        </div>
-      </header>
-
-      <div className="dashboard-content">
-        <div className="dashboard-controls">
-          <div className="filters">
-            <select 
-              value={selectedSubject} 
-              onChange={(e) => setSelectedSubject(e.target.value)}
-              className="filter-select"
+    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
+      <AppBar position="static" elevation={0}>
+        <Toolbar>
+          <School sx={{ mr: 2 }} />
+          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+            MSC Evaluate Dashboard
+          </Typography>
+          
+          <Box display="flex" alignItems="center" gap={2}>
+            <Chip
+              label={user?.role?.toUpperCase()}
+              color={getRoleColor(user?.role)}
+              size="small"
+              sx={{ color: 'white', borderColor: 'rgba(255,255,255,0.3)' }}
+              variant="outlined"
+            />
+            <IconButton
+              size="large"
+              edge="end"
+              color="inherit"
+              onClick={handleMenuOpen}
             >
-              <option value="">All Subjects</option>
-              <option value="Computer Science">Computer Science</option>
-              <option value="Mathematics">Mathematics</option>
-              <option value="Physics">Physics</option>
-              <option value="Chemistry">Chemistry</option>
-            </select>
-            
-            <select 
-              value={selectedCourse} 
-              onChange={(e) => setCourse(e.target.value)}
-              className="filter-select"
-            >
-              <option value="">All Courses</option>
-              <option value="MSC-101">MSC-101</option>
-              <option value="MSC-102">MSC-102</option>
-              <option value="MSC-201">MSC-201</option>
-              <option value="MSC-202">MSC-202</option>
-            </select>
-          </div>
+              <Avatar sx={{ width: 32, height: 32, bgcolor: 'rgba(255,255,255,0.2)' }}>
+                <Person fontSize="small" />
+              </Avatar>
+            </IconButton>
+          </Box>
 
-          {AuthService.hasAnyRole(['admin', 'tutor']) && (
-            <button onClick={handleCreateTemplate} className="btn-create">
-              + Create Template
-            </button>
-          )}
-        </div>
-
-        {error && <div className="error-message">{error}</div>}
-
-        {loading ? (
-          <div className="loading">
-            <div className="spinner"></div>
-            <p>Loading templates...</p>
-          </div>
-        ) : (
-          <div className="templates-grid">
-            {Object.keys(groupedTemplates).length === 0 ? (
-              <div className="no-templates">
-                <p>No templates found. {AuthService.hasAnyRole(['admin', 'tutor']) ? 'Create your first template!' : 'Check back later for new assignments.'}</p>
-              </div>
-            ) : (
-              Object.entries(groupedTemplates).map(([subjectCourse, templateList]) => (
-                <div key={subjectCourse} className="subject-section">
-                  <h3 className="subject-title">{subjectCourse}</h3>
-                  <div className="template-cards">
-                    {templateList.map((template) => (
-                      <div 
-                        key={template.template_id} 
-                        className="template-card"
-                        onClick={() => handleTemplateClick(template.template_id)}
-                      >
-                        <div className="card-header">
-                          <h4>{template.title}</h4>
-                          <span className="question-count">{template.question_count} questions</span>
-                        </div>
-                        <div className="card-footer">
-                          <span className="created-date">
-                            Created: {new Date(template.created_at).toLocaleDateString()}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))
+          <Menu
+            anchorEl={anchorEl}
+            open={Boolean(anchorEl)}
+            onClose={handleMenuClose}
+            transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+            anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+          >
+            <MenuItem onClick={() => { navigate('/profile'); handleMenuClose(); }}>
+              <AccountCircle sx={{ mr: 1 }} /> Profile
+            </MenuItem>
+            <MenuItem onClick={() => { navigate('/reports'); handleMenuClose(); }}>
+              <Assessment sx={{ mr: 1 }} /> Reports
+            </MenuItem>
+            {AuthService.hasRole('admin') && (
+              <MenuItem onClick={() => { navigate('/admin'); handleMenuClose(); }}>
+                <AdminPanelSettings sx={{ mr: 1 }} /> Admin Panel
+              </MenuItem>
             )}
-          </div>
+            <MenuItem onClick={handleLogout}>
+              <Logout sx={{ mr: 1 }} /> Logout
+            </MenuItem>
+          </Menu>
+        </Toolbar>
+      </AppBar>
+
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        {/* Welcome Section */}
+        <Box mb={4}>
+          <Typography variant="h4" gutterBottom>
+            Welcome back, {user?.name}! 👋
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            Ready to take some quizzes? Choose from the available templates below.
+          </Typography>
+        </Box>
+
+        {/* Filters */}
+        <Card elevation={0} sx={{ mb: 4 }}>
+          <CardContent>
+            <Box display="flex" alignItems="center" gap={2} mb={2}>
+              <FilterList color="primary" />
+              <Typography variant="h6">Filter Templates</Typography>
+            </Box>
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6} md={4}>
+                <FormControl fullWidth>
+                  <InputLabel>Subject</InputLabel>
+                  <Select
+                    value={selectedSubject}
+                    label="Subject"
+                    onChange={(e) => setSelectedSubject(e.target.value)}
+                  >
+                    <MenuItem value="">All Subjects</MenuItem>
+                    <MenuItem value="Computer Science">Computer Science</MenuItem>
+                    <MenuItem value="Mathematics">Mathematics</MenuItem>
+                    <MenuItem value="Physics">Physics</MenuItem>
+                    <MenuItem value="Chemistry">Chemistry</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={6} md={4}>
+                <FormControl fullWidth>
+                  <InputLabel>Course</InputLabel>
+                  <Select
+                    value={selectedCourse}
+                    label="Course"
+                    onChange={(e) => setCourse(e.target.value)}
+                  >
+                    <MenuItem value="">All Courses</MenuItem>
+                    <MenuItem value="MSC-101">MSC-101</MenuItem>
+                    <MenuItem value="MSC-102">MSC-102</MenuItem>
+                    <MenuItem value="MSC-201">MSC-201</MenuItem>
+                    <MenuItem value="MSC-202">MSC-202</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
+
+        {error && (
+          <Alert severity="error" sx={{ mb: 3 }}>
+            {error}
+          </Alert>
         )}
 
-        <div className="dashboard-nav">
-          <button onClick={() => navigate('/profile')} className="nav-btn">
-            👤 Profile
-          </button>
-          <button onClick={() => navigate('/reports')} className="nav-btn">
-            📊 Reports
-          </button>
-          {AuthService.hasRole('admin') && (
-            <button onClick={() => navigate('/admin')} className="nav-btn">
-              ⚙️ Admin
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
+        {loading ? (
+          <Box display="flex" justifyContent="center" py={8}>
+            <CircularProgress size={60} />
+          </Box>
+        ) : (
+          <Box>
+            {Object.keys(groupedTemplates).length === 0 ? (
+              <Card elevation={0}>
+                <CardContent sx={{ textAlign: 'center', py: 8 }}>
+                  <Quiz sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+                  <Typography variant="h6" gutterBottom>
+                    No templates found
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {AuthService.hasAnyRole(['admin', 'tutor']) 
+                      ? 'Create your first template to get started!' 
+                      : 'Check back later for new assignments.'}
+                  </Typography>
+                </CardContent>
+              </Card>
+            ) : (
+              Object.entries(groupedTemplates).map(([subjectCourse, templateList]) => (
+                <Box key={subjectCourse} mb={4}>
+                  <Typography variant="h5" gutterBottom sx={{ mb: 2 }}>
+                    {subjectCourse}
+                  </Typography>
+                  <Grid container spacing={3}>
+                    {templateList.map((template) => (
+                      <Grid item xs={12} sm={6} md={4} key={template.template_id}>
+                        <Card 
+                          elevation={0}
+                          sx={{ 
+                            height: '100%',
+                            cursor: 'pointer',
+                            transition: 'all 0.3s ease',
+                            '&:hover': {
+                              transform: 'translateY(-4px)',
+                              boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
+                            }
+                          }}
+                          onClick={() => handleTemplateClick(template.template_id)}
+                        >
+                          <CardContent sx={{ flexGrow: 1 }}>
+                            <Typography variant="h6" gutterBottom>
+                              {template.title}
+                            </Typography>
+                            <Box display="flex" alignItems="center" gap={1} mb={2}>
+                              <Chip 
+                                label={`${template.question_count} questions`}
+                                size="small"
+                                color="primary"
+                                variant="outlined"
+                              />
+                            </Box>
+                            <Typography variant="body2" color="text.secondary">
+                              Created: {new Date(template.created_at).toLocaleDateString()}
+                            </Typography>
+                          </CardContent>
+                          <CardActions>
+                            <Button 
+                              size="small" 
+                              startIcon={<Quiz />}
+                              fullWidth
+                              variant="contained"
+                            >
+                              Take Quiz
+                            </Button>
+                          </CardActions>
+                        </Card>
+                      </Grid>
+                    ))}
+                  </Grid>
+                </Box>
+              ))
+            )}
+          </Box>
+        )}
+      </Container>
+
+      {/* Floating Action Button for Create Template */}
+      {AuthService.hasAnyRole(['admin', 'tutor']) && (
+        <Tooltip title="Create Template">
+          <Fab
+            color="primary"
+            sx={{
+              position: 'fixed',
+              bottom: 24,
+              right: 24,
+            }}
+            onClick={handleCreateTemplate}
+          >
+            <Add />
+          </Fab>
+        </Tooltip>
+      )}
+    </Box>
   );
 };
 

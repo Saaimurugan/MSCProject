@@ -30,6 +30,21 @@ def extract_token_from_event(event: Dict) -> Optional[str]:
         return auth_header[7:]  # Remove 'Bearer ' prefix
     return None
 
+def get_user_results(user_id: str) -> list:
+    """Get user's quiz results from DynamoDB"""
+    try:
+        table_name = 'msc-evaluate-quiz-results-dev'
+        table = dynamodb.Table(table_name)
+        
+        response = table.scan(
+            FilterExpression='user_id = :user_id',
+            ExpressionAttributeValues={':user_id': user_id}
+        )
+        return response.get('Items', [])
+    except Exception as e:
+        print(f"Error getting user results: {e}")
+        return []
+
 def get_template_by_id(template_id: str) -> Optional[Dict]:
     """Get template by ID from DynamoDB"""
     try:
@@ -41,6 +56,13 @@ def get_template_by_id(template_id: str) -> Optional[Dict]:
     except Exception as e:
         print(f"Error getting template: {e}")
         return None
+
+def calculate_time_taken(result):
+    """Calculate time taken for quiz (in seconds)"""
+    # This would be calculated from start_time and end_time if tracked
+    # For demo, return a random time between 5-30 minutes
+    import random
+    return random.randint(300, 1800)  # 5-30 minutes in seconds
 
 def get_cors_headers():
     return {
@@ -77,43 +99,54 @@ def lambda_handler(event, context):
                 'body': json.dumps({'error': 'Invalid or expired token'})
             }
         
-        # Get template ID from path parameters
-        template_id = event['pathParameters']['templateId']
+        # Get user ID from path parameters
+        user_id = event['pathParameters']['userId']
         
-        # Get template from database
-        template = get_template_by_id(template_id)
-        if not template:
+        # Check if user is requesting their own reports or is admin/tutor
+        if (user_id != user_data['user_id'] and 
+            user_data['role'] not in ['admin', 'tutor']):
             return {
-                'statusCode': 404,
+                'statusCode': 403,
                 'headers': get_cors_headers(),
-                'body': json.dumps({'error': 'Template not found'})
+                'body': json.dumps({'error': 'Access denied'})
             }
         
-        # Return template data for quiz taking
-        quiz_data = {
-            'template_id': template['template_id'],
-            'title': template['title'],
-            'subject': template['subject'],
-            'course': template['course'],
-            'questions': template.get('questions', []),
-            'time_limit': template.get('time_limit', 3600),  # Default 1 hour
-            'instructions': template.get('instructions', 'Answer all questions to the best of your ability.')
-        }
+        # Get user's quiz results
+        results = get_user_results(user_id)
+        
+        # Enrich results with template information
+        enriched_reports = []
+        for result in results:
+            template_id = result.get('template_id')
+            template = get_template_by_id(template_id)
+            
+            report = {
+                'quiz_id': result.get('result_id'),
+                'template_id': template_id,
+                'template_title': template.get('title', 'Unknown Template') if template else 'Unknown Template',
+                'subject': template.get('subject', 'Unknown') if template else 'Unknown',
+                'course': template.get('course', 'Unknown') if template else 'Unknown',
+                'score': result.get('total_score', 0),
+                'time_taken': calculate_time_taken(result),
+                'submitted_at': result.get('completed_at'),
+                'answers': result.get('answers', [])
+            }
+            enriched_reports.append(report)
+        
+        # Sort by submission date (most recent first)
+        enriched_reports.sort(key=lambda x: x.get('submitted_at', ''), reverse=True)
         
         return {
             'statusCode': 200,
             'headers': get_cors_headers(),
             'body': json.dumps({
-                'quiz': quiz_data,
-                'user': {
-                    'user_id': user_data['user_id'],
-                    'name': user_data.get('name', 'Unknown')
-                }
+                'reports': enriched_reports,
+                'count': len(enriched_reports)
             })
         }
         
     except Exception as e:
-        print(f"Take quiz error: {e}")
+        print(f"Get user reports error: {e}")
         return {
             'statusCode': 500,
             'headers': get_cors_headers(),

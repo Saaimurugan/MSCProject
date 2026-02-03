@@ -69,4 +69,20 @@ export const reportsAPI = {
   getAllReports: () => api.get('/reports/all'),
 };
 
+// Admin API calls
+export const adminAPI = {
+  getUsers: () => api.get('/admin/users'),
+  createUser: (userData) => api.post('/admin/users', userData),
+  updateUserRole: (userId, role) => api.put(`/admin/users/${userId}/role`, { role }),
+  deleteUser: (userId) => api.delete(`/admin/users/${userId}`),
+  getUsageLogs: () => api.get('/admin/logs'),
+};
+
+// Profile API calls
+export const profileAPI = {
+  getProfile: () => api.get('/profile'),
+  updateProfile: (profileData) => api.put('/profile', profileData),
+  changePassword: (passwordData) => api.put('/profile/password', passwordData),
+};
+
 export default api;

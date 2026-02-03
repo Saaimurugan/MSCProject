@@ -30,18 +30,6 @@ def extract_token_from_event(event: Dict) -> Optional[str]:
         return auth_header[7:]  # Remove 'Bearer ' prefix
     return None
 
-def get_template_by_id(template_id: str) -> Optional[Dict]:
-    """Get template by ID from DynamoDB"""
-    try:
-        table_name = 'msc-evaluate-templates-dev'
-        table = dynamodb.Table(table_name)
-        
-        response = table.get_item(Key={'template_id': template_id})
-        return response.get('Item')
-    except Exception as e:
-        print(f"Error getting template: {e}")
-        return None
-
 def get_cors_headers():
     return {
         'Content-Type': 'application/json',
@@ -77,43 +65,45 @@ def lambda_handler(event, context):
                 'body': json.dumps({'error': 'Invalid or expired token'})
             }
         
-        # Get template ID from path parameters
-        template_id = event['pathParameters']['templateId']
-        
-        # Get template from database
-        template = get_template_by_id(template_id)
-        if not template:
+        # Check if user is admin
+        if user_data.get('role') != 'admin':
             return {
-                'statusCode': 404,
+                'statusCode': 403,
                 'headers': get_cors_headers(),
-                'body': json.dumps({'error': 'Template not found'})
+                'body': json.dumps({'error': 'Insufficient permissions'})
             }
         
-        # Return template data for quiz taking
-        quiz_data = {
-            'template_id': template['template_id'],
-            'title': template['title'],
-            'subject': template['subject'],
-            'course': template['course'],
-            'questions': template.get('questions', []),
-            'time_limit': template.get('time_limit', 3600),  # Default 1 hour
-            'instructions': template.get('instructions', 'Answer all questions to the best of your ability.')
-        }
+        # Get all users from DynamoDB
+        table_name = 'msc-evaluate-users-dev'
+        table = dynamodb.Table(table_name)
+        
+        response = table.scan()
+        users = response.get('Items', [])
+        
+        # Remove sensitive information
+        safe_users = []
+        for user in users:
+            safe_user = {
+                'user_id': user.get('user_id'),
+                'email': user.get('email'),
+                'name': user.get('name'),
+                'role': user.get('role'),
+                'is_active': user.get('is_active'),
+                'created_at': user.get('created_at')
+            }
+            safe_users.append(safe_user)
         
         return {
             'statusCode': 200,
             'headers': get_cors_headers(),
             'body': json.dumps({
-                'quiz': quiz_data,
-                'user': {
-                    'user_id': user_data['user_id'],
-                    'name': user_data.get('name', 'Unknown')
-                }
+                'users': safe_users,
+                'count': len(safe_users)
             })
         }
         
     except Exception as e:
-        print(f"Take quiz error: {e}")
+        print(f"Get users error: {e}")
         return {
             'statusCode': 500,
             'headers': get_cors_headers(),

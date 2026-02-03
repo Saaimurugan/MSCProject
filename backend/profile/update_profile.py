@@ -30,17 +30,29 @@ def extract_token_from_event(event: Dict) -> Optional[str]:
         return auth_header[7:]  # Remove 'Bearer ' prefix
     return None
 
-def get_template_by_id(template_id: str) -> Optional[Dict]:
-    """Get template by ID from DynamoDB"""
+def update_user_profile(user_id: str, updates: Dict) -> Dict:
+    """Update user profile in DynamoDB"""
     try:
-        table_name = 'msc-evaluate-templates-dev'
+        table_name = 'msc-evaluate-users-dev'
         table = dynamodb.Table(table_name)
         
-        response = table.get_item(Key={'template_id': template_id})
-        return response.get('Item')
+        # Add updated timestamp
+        updates['updated_at'] = datetime.utcnow().isoformat()
+        
+        # Build update expression
+        update_expression = "SET " + ", ".join([f"{k} = :{k}" for k in updates.keys()])
+        expression_values = {f":{k}": v for k, v in updates.items()}
+        
+        response = table.update_item(
+            Key={'user_id': user_id},
+            UpdateExpression=update_expression,
+            ExpressionAttributeValues=expression_values,
+            ReturnValues="ALL_NEW"
+        )
+        return response['Attributes']
     except Exception as e:
-        print(f"Error getting template: {e}")
-        return None
+        print(f"Error updating user profile: {e}")
+        raise e
 
 def get_cors_headers():
     return {
@@ -77,43 +89,44 @@ def lambda_handler(event, context):
                 'body': json.dumps({'error': 'Invalid or expired token'})
             }
         
-        # Get template ID from path parameters
-        template_id = event['pathParameters']['templateId']
+        # Parse request body
+        body = json.loads(event['body'])
+        name = body.get('name')
+        email = body.get('email')
         
-        # Get template from database
-        template = get_template_by_id(template_id)
-        if not template:
+        if not name and not email:
             return {
-                'statusCode': 404,
+                'statusCode': 400,
                 'headers': get_cors_headers(),
-                'body': json.dumps({'error': 'Template not found'})
+                'body': json.dumps({'error': 'At least one field (name or email) is required'})
             }
         
-        # Return template data for quiz taking
-        quiz_data = {
-            'template_id': template['template_id'],
-            'title': template['title'],
-            'subject': template['subject'],
-            'course': template['course'],
-            'questions': template.get('questions', []),
-            'time_limit': template.get('time_limit', 3600),  # Default 1 hour
-            'instructions': template.get('instructions', 'Answer all questions to the best of your ability.')
-        }
+        # Prepare updates
+        updates = {}
+        if name:
+            updates['name'] = name
+        if email:
+            updates['email'] = email
+        
+        # Update user profile
+        updated_user = update_user_profile(user_data['user_id'], updates)
         
         return {
             'statusCode': 200,
             'headers': get_cors_headers(),
             'body': json.dumps({
-                'quiz': quiz_data,
+                'message': 'Profile updated successfully',
                 'user': {
-                    'user_id': user_data['user_id'],
-                    'name': user_data.get('name', 'Unknown')
+                    'user_id': updated_user['user_id'],
+                    'email': updated_user['email'],
+                    'name': updated_user['name'],
+                    'role': updated_user['role']
                 }
             })
         }
         
     except Exception as e:
-        print(f"Take quiz error: {e}")
+        print(f"Update profile error: {e}")
         return {
             'statusCode': 500,
             'headers': get_cors_headers(),
