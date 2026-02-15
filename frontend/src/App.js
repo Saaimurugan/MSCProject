@@ -13,6 +13,7 @@ import QuizTaking from './components/quiz/QuizTaking';
 import Admin from './components/admin/Admin';
 import Reports from './components/reports/Reports';
 import Profile from './components/profile/Profile';
+import CreateTemplate from './components/templates/CreateTemplate';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -22,6 +23,13 @@ const ProtectedRoute = ({ children }) => {
 // Admin Route Component
 const AdminRoute = ({ children }) => {
   return AuthService.isAuthenticated() && AuthService.hasRole('admin') 
+    ? children 
+    : <Navigate to="/dashboard" />;
+};
+
+// Tutor/Admin Route Component
+const TutorAdminRoute = ({ children }) => {
+  return AuthService.isAuthenticated() && AuthService.hasAnyRole(['admin', 'tutor'])
     ? children 
     : <Navigate to="/dashboard" />;
 };
@@ -77,6 +85,13 @@ function App() {
               <AdminRoute>
                 <Admin />
               </AdminRoute>
+            } />
+
+            {/* Tutor/Admin Routes */}
+            <Route path="/template/create" element={
+              <TutorAdminRoute>
+                <CreateTemplate />
+              </TutorAdminRoute>
             } />
 
             {/* Default redirect */}

@@ -1,6 +1,8 @@
 import json
 import boto3
-import jwt
+import hashlib
+import hmac
+import base64
 from datetime import datetime
 from typing import Dict, Optional
 
@@ -11,23 +13,89 @@ JWT_ALGORITHM = "HS256"
 # DynamoDB setup
 dynamodb = boto3.resource('dynamodb')
 
+def base64url_decode(data):
+    """Base64 URL decode with padding"""
+    if isinstance(data, str):
+        data = data.encode('utf-8')
+    # Add padding if needed
+    padding = 4 - (len(data) % 4)
+    if padding != 4:
+        data += b'=' * padding
+    return base64.urlsafe_b64decode(data)
+
+def base64url_encode(data):
+    """Base64 URL encode without padding"""
+    if isinstance(data, str):
+        data = data.encode('utf-8')
+    elif not isinstance(data, bytes):
+        data = str(data).encode('utf-8')
+    return base64.urlsafe_b64encode(data).rstrip(b'=').decode('utf-8')
+
 def verify_jwt_token(token: str) -> Optional[Dict]:
     """Verify and decode JWT token"""
     try:
-        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        parts = token.split('.')
+        if len(parts) != 3:
+            return None
+        
+        header_encoded, payload_encoded, signature_encoded = parts
+        
+        # Verify signature
+        message = f"{header_encoded}.{payload_encoded}"
+        expected_signature = hmac.new(
+            JWT_SECRET.encode('utf-8'),
+            message.encode('utf-8'),
+            hashlib.sha256
+        ).digest()
+        expected_signature_encoded = base64url_encode(expected_signature)
+        
+        if signature_encoded != expected_signature_encoded:
+            return None
+        
+        # Decode payload
+        payload_json = base64url_decode(payload_encoded)
+        payload = json.loads(payload_json)
+        
+        # Check expiration
+        if 'exp' in payload:
+            if payload['exp'] < int(datetime.utcnow().timestamp()):
+                return None
+        
         return payload
-    except jwt.ExpiredSignatureError:
-        return None
-    except jwt.InvalidTokenError:
+    except Exception as e:
+        print(f"JWT verification error: {e}")
         return None
 
 def extract_token_from_event(event: Dict) -> Optional[str]:
     """Extract JWT token from Lambda event"""
+    # Log the entire event for debugging
+    print(f"Event keys: {event.keys()}")
+    print(f"Event: {json.dumps(event, default=str)}")
+    
     headers = event.get('headers', {})
-    auth_header = headers.get('Authorization') or headers.get('authorization')
+    
+    # Try different header case variations
+    auth_header = (headers.get('Authorization') or 
+                   headers.get('authorization') or 
+                   headers.get('AUTHORIZATION'))
+    
+    print(f"Headers received: {headers}")
+    print(f"Auth header: {auth_header}")
     
     if auth_header and auth_header.startswith('Bearer '):
         return auth_header[7:]  # Remove 'Bearer ' prefix
+    
+    # Also check in requestContext.authorizer if using API Gateway authorizer
+    request_context = event.get('requestContext', {})
+    authorizer = request_context.get('authorizer', {})
+    if authorizer.get('token'):
+        return authorizer.get('token')
+    
+    # Check query string parameters as fallback
+    query_params = event.get('queryStringParameters', {})
+    if query_params and query_params.get('token'):
+        return query_params.get('token')
+    
     return None
 
 def get_templates(subject: str = None, course: str = None) -> list:
@@ -82,6 +150,9 @@ def lambda_handler(event, context):
         }
     
     try:
+        # Debug logging - log the entire event
+        print(f"Full event: {json.dumps(event)}")
+        
         # Verify authentication
         token = extract_token_from_event(event)
         if not token:
