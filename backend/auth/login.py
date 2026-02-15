@@ -1,15 +1,8 @@
 import json
 import boto3
-import jwt
 import hashlib
-from datetime import datetime, timedelta
-from typing import Dict, Optional
-import uuid
-
-import json
-import boto3
-import jwt
-import hashlib
+import hmac
+import base64
 from datetime import datetime, timedelta
 from typing import Dict, Optional
 import uuid
@@ -22,16 +15,38 @@ JWT_EXPIRATION_HOURS = 24
 # DynamoDB setup
 dynamodb = boto3.resource('dynamodb')
 
+def base64url_encode(data):
+    """Base64 URL encode without padding"""
+    if isinstance(data, str):
+        data = data.encode('utf-8')
+    elif not isinstance(data, bytes):
+        data = str(data).encode('utf-8')
+    return base64.urlsafe_b64encode(data).rstrip(b'=').decode('utf-8')
+
+def create_jwt(payload, secret):
+    """Create a JWT token using built-in libraries."""
+    header = {"alg": "HS256", "typ": "JWT"}
+    header_encoded = base64url_encode(json.dumps(header, separators=(',', ':')))
+    payload_encoded = base64url_encode(json.dumps(payload, separators=(',', ':')))
+    message = f"{header_encoded}.{payload_encoded}"
+    signature = hmac.new(
+        secret.encode('utf-8'),
+        message.encode('utf-8'),
+        hashlib.sha256
+    ).digest()
+    signature_encoded = base64url_encode(signature)
+    return f"{message}.{signature_encoded}"
+
 def generate_jwt_token(user_data: Dict) -> str:
     """Generate JWT token for authenticated user"""
     payload = {
         'user_id': user_data['user_id'],
         'email': user_data['email'],
         'role': user_data['role'],
-        'exp': datetime.utcnow() + timedelta(hours=JWT_EXPIRATION_HOURS),
-        'iat': datetime.utcnow()
+        'exp': int((datetime.utcnow() + timedelta(hours=JWT_EXPIRATION_HOURS)).timestamp()),
+        'iat': int(datetime.utcnow().timestamp())
     }
-    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+    return create_jwt(payload, JWT_SECRET)
 
 def hash_password(password: str) -> str:
     """Hash password using SHA256 (simplified for demo)"""
@@ -75,7 +90,12 @@ def lambda_handler(event, context):
         }
     
     try:
-        body = json.loads(event['body'])
+        # Handle both API Gateway and direct invocation formats
+        if 'body' in event:
+            body = json.loads(event['body']) if isinstance(event['body'], str) else event['body']
+        else:
+            body = event
+        
         email = body.get('email')
         password = body.get('password')
         

@@ -56,9 +56,29 @@ const Dashboard = () => {
     try {
       setLoading(true);
       const response = await templatesAPI.getTemplates(selectedSubject, selectedCourse);
-      setTemplates(response.data.templates);
+      console.log('Templates response:', response);
+      
+      // Handle different response formats
+      let templatesData = [];
+      if (response.data) {
+        if (Array.isArray(response.data)) {
+          templatesData = response.data;
+        } else if (response.data.templates) {
+          templatesData = response.data.templates;
+        } else if (response.data.body) {
+          const body = typeof response.data.body === 'string' 
+            ? JSON.parse(response.data.body) 
+            : response.data.body;
+          templatesData = body.templates || [];
+        }
+      }
+      
+      setTemplates(templatesData);
+      setError('');
     } catch (error) {
+      console.error('Templates error:', error);
       setError('Failed to load templates');
+      setTemplates([]);
     } finally {
       setLoading(false);
     }
@@ -94,14 +114,14 @@ const Dashboard = () => {
   };
 
   // Group templates by subject and course
-  const groupedTemplates = templates.reduce((acc, template) => {
+  const groupedTemplates = Array.isArray(templates) ? templates.reduce((acc, template) => {
     const key = `${template.subject} - ${template.course}`;
     if (!acc[key]) {
       acc[key] = [];
     }
     acc[key].push(template);
     return acc;
-  }, {});
+  }, {}) : {};
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>

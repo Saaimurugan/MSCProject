@@ -49,12 +49,32 @@ const Login = () => {
 
     try {
       const response = await authAPI.login(formData.email, formData.password);
-      const { token, user } = response.data;
+      console.log('Login response:', response);
+      
+      // Handle API Gateway response format
+      let data = response.data;
+      
+      // If data is a string, parse it
+      if (typeof data === 'string') {
+        data = JSON.parse(data);
+      }
+      
+      // If data has a body property (API Gateway format), parse it
+      if (data.body) {
+        data = typeof data.body === 'string' ? JSON.parse(data.body) : data.body;
+      }
+      
+      const { token, user } = data;
+      
+      if (!token || !user) {
+        throw new Error('Invalid response format');
+      }
       
       AuthService.setAuth(token, user);
       navigate('/dashboard');
     } catch (error) {
-      setError(error.response?.data?.error || 'Login failed');
+      console.error('Login error:', error);
+      setError(error.response?.data?.error || error.message || 'Login failed');
     } finally {
       setLoading(false);
     }
