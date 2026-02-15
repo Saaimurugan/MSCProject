@@ -1,5 +1,3 @@
-import React from 'react';
-
 // Custom JWT decoder (no external library needed)
 const decodeJWT = (token) => {
   try {

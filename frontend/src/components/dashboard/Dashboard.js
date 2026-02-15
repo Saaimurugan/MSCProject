@@ -50,6 +50,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     loadTemplates();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSubject, selectedCourse]);
 
   const loadTemplates = async () => {

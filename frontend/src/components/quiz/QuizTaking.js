@@ -21,6 +21,7 @@ const QuizTaking = () => {
 
   useEffect(() => {
     loadQuiz();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [templateId]);
 
   const loadQuiz = async () => {

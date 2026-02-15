@@ -21,6 +21,7 @@ const Reports = () => {
 
   useEffect(() => {
     loadReports();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, selectedTemplate, dateRange]);
 
   const loadReports = async () => {
