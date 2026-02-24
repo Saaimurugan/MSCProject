@@ -1,0 +1,125 @@
+{
+  "CREATE_TEMPLATE": {
+    "description": "POST /templates - Create a new quiz template",
+    "event": {
+      "httpMethod": "POST",
+      "path": "/templates",
+      "body": "{\"title\":\"Python Basics Quiz\",\"subject\":\"Computer Science\",\"course\":\"Introduction to Python\",\"questions\":[{\"question_text\":\"What is the output of print(2 + 2)?\",\"options\":[\"3\",\"4\",\"5\",\"22\"],\"correct_answer\":1},{\"question_text\":\"Which keyword is used to define a function in Python?\",\"options\":[\"func\",\"def\",\"function\",\"define\"],\"correct_answer\":1},{\"question_text\":\"What data type is the value True?\",\"options\":[\"string\",\"integer\",\"boolean\",\"float\"],\"correct_answer\":2}]}"
+    },
+    "expected_response": {
+      "statusCode": 201,
+      "body_contains": ["template_id", "Template created successfully"]
+    }
+  },
+
+  "GET_ALL_TEMPLATES": {
+    "description": "GET /templates - Get all active templates",
+    "event": {
+      "httpMethod": "GET",
+      "path": "/templates",
+      "queryStringParameters": null
+    },
+    "expected_response": {
+      "statusCode": 200,
+      "body_contains": ["templates", "count"]
+    }
+  },
+
+  "GET_TEMPLATES_BY_SUBJECT": {
+    "description": "GET /templates?subject=Computer Science - Filter templates by subject",
+    "event": {
+      "httpMethod": "GET",
+      "path": "/templates",
+      "queryStringParameters": {
+        "subject": "Computer Science"
+      }
+    },
+    "expected_response": {
+      "statusCode": 200,
+      "body_contains": ["templates", "count"]
+    }
+  },
+
+  "GET_TEMPLATES_BY_COURSE": {
+    "description": "GET /templates?course=Introduction to Python - Filter templates by course",
+    "event": {
+      "httpMethod": "GET",
+      "path": "/templates",
+      "queryStringParameters": {
+        "course": "Introduction to Python"
+      }
+    },
+    "expected_response": {
+      "statusCode": 200,
+      "body_contains": ["templates", "count"]
+    }
+  },
+
+  "GET_TEMPLATES_BY_SUBJECT_AND_COURSE": {
+    "description": "GET /templates?subject=Computer Science&course=Introduction to Python - Filter by both",
+    "event": {
+      "httpMethod": "GET",
+      "path": "/templates",
+      "queryStringParameters": {
+        "subject": "Computer Science",
+        "course": "Introduction to Python"
+      }
+    },
+    "expected_response": {
+      "statusCode": 200,
+      "body_contains": ["templates", "count"]
+    }
+  },
+
+  "GET_TEMPLATE_BY_ID": {
+    "description": "GET /templates/{template_id} - Get specific template (replace TEMPLATE_ID with actual ID)",
+    "event": {
+      "httpMethod": "GET",
+      "path": "/templates/TEMPLATE_ID",
+      "pathParameters": {
+        "template_id": "TEMPLATE_ID"
+      }
+    },
+    "expected_response": {
+      "statusCode": 200,
+      "body_contains": ["template_id", "title", "subject", "course", "questions"]
+    }
+  },
+
+  "CREATE_TEMPLATE_VALIDATION_ERROR_NO_TITLE": {
+    "description": "POST /templates - Validation error: missing title",
+    "event": {
+      "httpMethod": "POST",
+      "path": "/templates",
+      "body": "{\"subject\":\"Math\",\"course\":\"Algebra\",\"questions\":[{\"question_text\":\"What is 2+2?\",\"options\":[\"3\",\"4\"],\"correct_answer\":1}]}"
+    },
+    "expected_response": {
+      "statusCode": 400,
+      "body_contains": ["Title is required"]
+    }
+  },
+
+  "CREATE_TEMPLATE_VALIDATION_ERROR_INSUFFICIENT_OPTIONS": {
+    "description": "POST /templates - Validation error: question with less than 2 options",
+    "event": {
+      "httpMethod": "POST",
+      "path": "/templates",
+      "body": "{\"title\":\"Test Quiz\",\"subject\":\"Math\",\"course\":\"Algebra\",\"questions\":[{\"question_text\":\"What is 2+2?\",\"options\":[\"4\"],\"correct_answer\":0}]}"
+    },
+    "expected_response": {
+      "statusCode": 400,
+      "body_contains": ["at least 2 answer options"]
+    }
+  },
+
+  "OPTIONS_CORS_PREFLIGHT": {
+    "description": "OPTIONS /templates - CORS preflight request",
+    "event": {
+      "httpMethod": "OPTIONS",
+      "path": "/templates"
+    },
+    "expected_response": {
+      "statusCode": 200
+    }
+  }
+}

@@ -1,21 +1,21 @@
 import json
 import boto3
+import uuid
+from datetime import datetime
 from typing import Dict, Optional
 
 # DynamoDB setup
 dynamodb = boto3.resource('dynamodb')
 
-def get_template_by_id(template_id: str) -> Optional[Dict]:
-    """Get template by ID from DynamoDB"""
-    try:
+# Database Models
+class Template:
+    def __init__(self):
         table_name = 'msc-evaluate-templates-dev'
-        table = dynamodb.Table(table_name)
-        
-        response = table.get_item(Key={'template_id': template_id})
+        self.table = dynamodb.Table(table_name)
+    
+    def get_item(self, key):
+        response = self.table.get_item(Key=key)
         return response.get('Item')
-    except Exception as e:
-        print(f"Error getting template: {e}")
-        return None
 
 def get_cors_headers():
     return {
@@ -39,7 +39,8 @@ def lambda_handler(event, context):
         template_id = event['pathParameters']['templateId']
         
         # Get template from database
-        template = get_template_by_id(template_id)
+        template_model = Template()
+        template = template_model.get_item({'template_id': template_id})
         if not template:
             return {
                 'statusCode': 404,

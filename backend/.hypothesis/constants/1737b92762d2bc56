@@ -1,4 +1,0 @@
-# file: C:\Users\Chitra\AppData\Roaming\Python\Python314\site-packages\allure_commons\types.py
-# hypothesis_version: 6.151.9
-
-['ALLURE_MANUAL', 'application/json', 'application/pdf', 'application/xml', 'application/yaml', 'as_id', 'blocker', 'bmp', 'critical', 'csv', 'epic', 'feature', 'framework', 'gif', 'hidden', 'host', 'html', 'image/bmp', 'image/gif', 'image/jpg', 'image/png', 'image/svg-xml', 'image/tiff', 'issue', 'jpg', 'json', 'language', 'link', 'masked', 'minor', 'mp4', 'normal', 'ogg', 'parentSuite', 'pcap', 'pdf', 'png', 'severity', 'story', 'subSuite', 'suite', 'svg', 'tag', 'text/csv', 'text/html', 'text/plain', 'text/uri-list', 'thread', 'tiff', 'tms', 'trivial', 'tsv', 'txt', 'uri', 'video/mp4', 'video/ogg', 'video/webm', 'webm', 'xml', 'yaml']

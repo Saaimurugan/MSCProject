@@ -1,0 +1,149 @@
+{
+  "SUBMIT_QUIZ_SUCCESS_WITH_SESSION": {
+    "description": "POST /quiz/submit - Submit quiz with session_id (replace TEMPLATE_ID with actual ID)",
+    "event": {
+      "httpMethod": "POST",
+      "path": "/quiz/submit",
+      "body": "{\"template_id\":\"TEMPLATE_ID\",\"session_id\":\"test-session-123\",\"answers\":[{\"question_index\":0,\"selected_answer\":1},{\"question_index\":1,\"selected_answer\":1},{\"question_index\":2,\"selected_answer\":2}]}"
+    },
+    "expected_response": {
+      "statusCode": 200,
+      "body_contains": ["result_id", "session_id", "total_score", "correct_count", "total_questions", "detailed_results"]
+    },
+    "notes": "Assumes template has 3 questions. Adjust answers array based on actual template."
+  },
+
+  "SUBMIT_QUIZ_SUCCESS_WITHOUT_SESSION": {
+    "description": "POST /quiz/submit - Submit quiz without session_id (auto-generated)",
+    "event": {
+      "httpMethod": "POST",
+      "path": "/quiz/submit",
+      "body": "{\"template_id\":\"TEMPLATE_ID\",\"answers\":[{\"question_index\":0,\"selected_answer\":1},{\"question_index\":1,\"selected_answer\":1},{\"question_index\":2,\"selected_answer\":2}]}"
+    },
+    "expected_response": {
+      "statusCode": 200,
+      "body_contains": ["result_id", "session_id", "total_score"]
+    },
+    "notes": "session_id will be auto-generated"
+  },
+
+  "SUBMIT_QUIZ_PERFECT_SCORE": {
+    "description": "POST /quiz/submit - Submit quiz with all correct answers",
+    "event": {
+      "httpMethod": "POST",
+      "path": "/quiz/submit",
+      "body": "{\"template_id\":\"TEMPLATE_ID\",\"session_id\":\"perfect-score-session\",\"answers\":[{\"question_index\":0,\"selected_answer\":1},{\"question_index\":1,\"selected_answer\":1},{\"question_index\":2,\"selected_answer\":2}]}"
+    },
+    "expected_response": {
+      "statusCode": 200,
+      "body_contains": ["total_score"],
+      "expected_score": 100
+    },
+    "notes": "Adjust selected_answer values to match correct answers in your template"
+  },
+
+  "SUBMIT_QUIZ_ZERO_SCORE": {
+    "description": "POST /quiz/submit - Submit quiz with all wrong answers",
+    "event": {
+      "httpMethod": "POST",
+      "path": "/quiz/submit",
+      "body": "{\"template_id\":\"TEMPLATE_ID\",\"session_id\":\"zero-score-session\",\"answers\":[{\"question_index\":0,\"selected_answer\":0},{\"question_index\":1,\"selected_answer\":0},{\"question_index\":2,\"selected_answer\":0}]}"
+    },
+    "expected_response": {
+      "statusCode": 200,
+      "body_contains": ["total_score"],
+      "expected_score": 0
+    },
+    "notes": "Assumes all correct answers are NOT index 0"
+  },
+
+  "SUBMIT_QUIZ_MISSING_TEMPLATE_ID": {
+    "description": "POST /quiz/submit - Validation error: missing template_id",
+    "event": {
+      "httpMethod": "POST",
+      "path": "/quiz/submit",
+      "body": "{\"answers\":[{\"question_index\":0,\"selected_answer\":1}]}"
+    },
+    "expected_response": {
+      "statusCode": 400,
+      "body_contains": ["Template ID is required"]
+    }
+  },
+
+  "SUBMIT_QUIZ_MISSING_ANSWERS": {
+    "description": "POST /quiz/submit - Validation error: missing answers",
+    "event": {
+      "httpMethod": "POST",
+      "path": "/quiz/submit",
+      "body": "{\"template_id\":\"TEMPLATE_ID\",\"session_id\":\"test-session\"}"
+    },
+    "expected_response": {
+      "statusCode": 400,
+      "body_contains": ["Answers are required"]
+    }
+  },
+
+  "SUBMIT_QUIZ_INCOMPLETE_ANSWERS": {
+    "description": "POST /quiz/submit - Validation error: not all questions answered",
+    "event": {
+      "httpMethod": "POST",
+      "path": "/quiz/submit",
+      "body": "{\"template_id\":\"TEMPLATE_ID\",\"session_id\":\"incomplete-session\",\"answers\":[{\"question_index\":0,\"selected_answer\":1}]}"
+    },
+    "expected_response": {
+      "statusCode": 400,
+      "body_contains": ["All questions must be answered"]
+    },
+    "notes": "Assumes template has more than 1 question"
+  },
+
+  "SUBMIT_QUIZ_INVALID_QUESTION_INDEX": {
+    "description": "POST /quiz/submit - Validation error: invalid question_index",
+    "event": {
+      "httpMethod": "POST",
+      "path": "/quiz/submit",
+      "body": "{\"template_id\":\"TEMPLATE_ID\",\"session_id\":\"invalid-index\",\"answers\":[{\"question_index\":0,\"selected_answer\":1},{\"question_index\":1,\"selected_answer\":1},{\"question_index\":99,\"selected_answer\":2}]}"
+    },
+    "expected_response": {
+      "statusCode": 400,
+      "body_contains": ["Invalid question_index"]
+    }
+  },
+
+  "SUBMIT_QUIZ_TEMPLATE_NOT_FOUND": {
+    "description": "POST /quiz/submit - Template not found",
+    "event": {
+      "httpMethod": "POST",
+      "path": "/quiz/submit",
+      "body": "{\"template_id\":\"non-existent-template-id\",\"session_id\":\"test-session\",\"answers\":[{\"question_index\":0,\"selected_answer\":1}]}"
+    },
+    "expected_response": {
+      "statusCode": 404,
+      "body_contains": ["Template not found"]
+    }
+  },
+
+  "SUBMIT_QUIZ_INVALID_JSON": {
+    "description": "POST /quiz/submit - Invalid JSON in request body",
+    "event": {
+      "httpMethod": "POST",
+      "path": "/quiz/submit",
+      "body": "{invalid json}"
+    },
+    "expected_response": {
+      "statusCode": 400,
+      "body_contains": ["Invalid JSON"]
+    }
+  },
+
+  "OPTIONS_CORS_PREFLIGHT": {
+    "description": "OPTIONS /quiz/submit - CORS preflight request",
+    "event": {
+      "httpMethod": "OPTIONS",
+      "path": "/quiz/submit"
+    },
+    "expected_response": {
+      "statusCode": 200
+    }
+  }
+}

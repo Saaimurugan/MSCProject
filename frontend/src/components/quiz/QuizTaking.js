@@ -1,33 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { quizAPI } from '../../services/api';
+import { templatesAPI, quizAPI } from '../../services/api';
 import './Quiz.css';
 
 const QuizTaking = () => {
   const { templateId } = useParams();
   const navigate = useNavigate();
-  const [quiz, setQuiz] = useState(null);
+  const [template, setTemplate] = useState(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState([]);
-  const [currentAnswer, setCurrentAnswer] = useState('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
-  const [studentInfo, setStudentInfo] = useState({
-    name: '',
-    id: ''
-  });
-  const [showStudentForm, setShowStudentForm] = useState(true);
 
   useEffect(() => {
-    loadQuiz();
+    loadTemplate();
   }, [templateId]);
 
-  const loadQuiz = async () => {
+  const loadTemplate = async () => {
     try {
-      const response = await quizAPI.getQuiz(templateId);
-      setQuiz(response.data);
-      setAnswers(new Array(response.data.questions.length).fill(''));
+      const response = await templatesAPI.getTemplateById(templateId);
+      setTemplate(response.data);
+      // Initialize answers array with null values
+      setAnswers(new Array(response.data.questions.length).fill(null));
     } catch (error) {
       setError('Failed to load quiz');
     } finally {
@@ -35,32 +30,18 @@ const QuizTaking = () => {
     }
   };
 
-  const handleStudentInfoSubmit = (e) => {
-    e.preventDefault();
-    if (!studentInfo.name.trim() || !studentInfo.id.trim()) {
-      setError('Please enter both name and student ID');
-      return;
-    }
-    setShowStudentForm(false);
-    setError('');
-  };
-
-  const handleAnswerChange = (e) => {
-    const newAnswer = e.target.value;
-    setCurrentAnswer(newAnswer);
-    
+  const handleAnswerChange = (optionIndex) => {
     const newAnswers = [...answers];
-    newAnswers[currentQuestionIndex] = newAnswer;
+    newAnswers[currentQuestionIndex] = optionIndex;
     setAnswers(newAnswers);
   };
 
   const goToQuestion = (index) => {
     setCurrentQuestionIndex(index);
-    setCurrentAnswer(answers[index] || '');
   };
 
   const nextQuestion = () => {
-    if (currentQuestionIndex < quiz.questions.length - 1) {
+    if (currentQuestionIndex < template.questions.length - 1) {
       goToQuestion(currentQuestionIndex + 1);
     }
   };
@@ -72,30 +53,35 @@ const QuizTaking = () => {
   };
 
   const submitQuiz = async () => {
-    // Check if all questions are answered
-    const unansweredQuestions = answers.some(answer => !answer.trim());
+    // Validate all questions are answered
+    const unansweredQuestions = answers.some(answer => answer === null);
     if (unansweredQuestions) {
-      if (!window.confirm('Some questions are not answered. Do you want to submit anyway?')) {
-        return;
-      }
+      setError('Please answer all questions before submitting');
+      return;
     }
 
     setSubmitting(true);
+    setError('');
     try {
       const quizData = {
         template_id: templateId,
-        student_name: studentInfo.name,
-        student_id: studentInfo.id,
-        answers: answers.map((answer, index) => ({
-          question_id: index,
-          user_answer: answer
+        answers: answers.map((selectedAnswer, index) => ({
+          question_index: index,
+          selected_answer: selectedAnswer
         }))
       };
 
       const response = await quizAPI.submitQuiz(quizData);
-      navigate('/quiz/results', { state: { results: response.data } });
+      // Navigate to results with template and results data
+      navigate(`/quiz/${templateId}/results`, { 
+        state: { 
+          results: response.data,
+          template: template
+        } 
+      });
     } catch (error) {
-      setError('Failed to submit quiz. Please try again.');
+      const errorMessage = error.response?.data?.error || 'Failed to submit quiz. Please try again.';
+      setError(errorMessage);
     } finally {
       setSubmitting(false);
     }
@@ -112,7 +98,7 @@ const QuizTaking = () => {
     );
   }
 
-  if (error && !quiz) {
+  if (error && !template) {
     return (
       <div className="quiz-container">
         <div className="error-message">{error}</div>
@@ -123,59 +109,14 @@ const QuizTaking = () => {
     );
   }
 
-  if (showStudentForm) {
-    return (
-      <div className="quiz-container">
-        <div className="student-info-card">
-          <h2>📝 {quiz?.title}</h2>
-          <p className="quiz-details">{quiz?.subject} - {quiz?.course}</p>
-          
-          {error && <div className="error-message">{error}</div>}
-          
-          <form onSubmit={handleStudentInfoSubmit}>
-            <div className="form-group">
-              <label htmlFor="studentName">Student Name</label>
-              <input
-                type="text"
-                id="studentName"
-                value={studentInfo.name}
-                onChange={(e) => setStudentInfo({...studentInfo, name: e.target.value})}
-                placeholder="Enter your full name"
-                required
-              />
-            </div>
-            
-            <div className="form-group">
-              <label htmlFor="studentId">Student ID</label>
-              <input
-                type="text"
-                id="studentId"
-                value={studentInfo.id}
-                onChange={(e) => setStudentInfo({...studentInfo, id: e.target.value})}
-                placeholder="Enter your student ID"
-                required
-              />
-            </div>
-            
-            <button type="submit" className="btn-primary">
-              Start Quiz ({quiz?.questions.length} questions)
-            </button>
-          </form>
-        </div>
-      </div>
-    );
-  }
-
-  const currentQuestion = quiz.questions[currentQuestionIndex];
-  const progress = ((currentQuestionIndex + 1) / quiz.questions.length) * 100;
+  const currentQuestion = template.questions[currentQuestionIndex];
+  const progress = ((currentQuestionIndex + 1) / template.questions.length) * 100;
 
   return (
     <div className="quiz-container">
       <div className="quiz-header">
-        <h1>{quiz.title}</h1>
-        <div className="student-info">
-          <span>{studentInfo.name} ({studentInfo.id})</span>
-        </div>
+        <h1>{template.title}</h1>
+        <p className="quiz-details">{template.subject} - {template.course}</p>
       </div>
 
       <div className="quiz-progress">
@@ -183,15 +124,15 @@ const QuizTaking = () => {
           <div className="progress-fill" style={{ width: `${progress}%` }}></div>
         </div>
         <div className="question-counter">
-          Question {currentQuestionIndex + 1} of {quiz.questions.length}
+          Question {currentQuestionIndex + 1} of {template.questions.length}
         </div>
       </div>
 
       <div className="question-navigation">
-        {quiz.questions.map((_, index) => (
+        {template.questions.map((_, index) => (
           <button
             key={index}
-            className={`nav-dot ${index === currentQuestionIndex ? 'active' : ''} ${answers[index] ? 'answered' : ''}`}
+            className={`nav-dot ${index === currentQuestionIndex ? 'active' : ''} ${answers[index] !== null ? 'answered' : ''}`}
             onClick={() => goToQuestion(index)}
           >
             {index + 1}
@@ -200,15 +141,25 @@ const QuizTaking = () => {
       </div>
 
       <div className="question-box">
-        <h3>{currentQuestion.question}</h3>
+        <h3>{currentQuestion.question_text}</h3>
       </div>
 
-      <textarea
-        value={currentAnswer}
-        onChange={handleAnswerChange}
-        placeholder="Type your answer here..."
-        className="answer-textarea"
-      />
+      <div className="answer-options">
+        {currentQuestion.options.map((option, index) => (
+          <div key={index} className="option-item">
+            <label>
+              <input
+                type="radio"
+                name={`question-${currentQuestionIndex}`}
+                value={index}
+                checked={answers[currentQuestionIndex] === index}
+                onChange={() => handleAnswerChange(index)}
+              />
+              <span className="option-text">{option}</span>
+            </label>
+          </div>
+        ))}
+      </div>
 
       {error && <div className="error-message">{error}</div>}
 
@@ -221,7 +172,7 @@ const QuizTaking = () => {
           Previous
         </button>
 
-        {currentQuestionIndex === quiz.questions.length - 1 ? (
+        {currentQuestionIndex === template.questions.length - 1 ? (
           <button 
             onClick={submitQuiz} 
             disabled={submitting}

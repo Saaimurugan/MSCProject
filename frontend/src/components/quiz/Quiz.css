@@ -280,3 +280,261 @@
     width: 100%;
   }
 }
+
+/* Answer Options Styles */
+.answer-options {
+  margin-bottom: 25px;
+}
+
+.option-item {
+  background: white;
+  border: 2px solid #e0e0e0;
+  border-radius: 10px;
+  padding: 15px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.option-item:hover {
+  border-color: #667eea;
+  background: #f8f9ff;
+}
+
+.option-item label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  width: 100%;
+}
+
+.option-item input[type="radio"] {
+  margin-right: 12px;
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+}
+
+.option-text {
+  flex: 1;
+  color: #333;
+  font-size: 16px;
+}
+
+.option-item:has(input:checked) {
+  border-color: #667eea;
+  background: #f0f3ff;
+}
+
+/* Results Styles */
+.results-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 30px 20px;
+  text-align: center;
+  margin-bottom: 30px;
+  border-radius: 15px;
+}
+
+.results-header h1 {
+  margin: 0 0 10px 0;
+  font-size: 2rem;
+}
+
+.results-header h2 {
+  margin: 0 0 5px 0;
+  font-size: 1.5rem;
+  opacity: 0.95;
+}
+
+.score-card {
+  background: white;
+  border-radius: 15px;
+  padding: 40px;
+  text-align: center;
+  margin-bottom: 30px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+}
+
+.score-percentage {
+  font-size: 4rem;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.score-label {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.score-details {
+  color: #666;
+  font-size: 1.1rem;
+}
+
+.score-card.excellent .score-percentage {
+  color: #27ae60;
+}
+
+.score-card.good .score-percentage {
+  color: #3498db;
+}
+
+.score-card.fair .score-percentage {
+  color: #f39c12;
+}
+
+.score-card.poor .score-percentage {
+  color: #e74c3c;
+}
+
+.detailed-results {
+  background: white;
+  border-radius: 15px;
+  padding: 30px;
+  margin-bottom: 30px;
+  box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+}
+
+.detailed-results h3 {
+  margin-top: 0;
+  margin-bottom: 25px;
+  color: #333;
+  font-size: 1.5rem;
+}
+
+.result-item {
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  transition: all 0.3s;
+}
+
+.result-item.correct {
+  border-color: #27ae60;
+  background: #f0fff4;
+}
+
+.result-item.incorrect {
+  border-color: #e74c3c;
+  background: #fff5f5;
+}
+
+.result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.question-number {
+  font-weight: 600;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.result-badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.result-badge.correct {
+  background: #27ae60;
+  color: white;
+}
+
+.result-badge.incorrect {
+  background: #e74c3c;
+  color: white;
+}
+
+.question-text {
+  font-size: 1.1rem;
+  color: #333;
+  margin-bottom: 15px;
+  font-weight: 500;
+}
+
+.answer-review {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.your-answer,
+.correct-answer {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.your-answer strong,
+.correct-answer strong {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.correct-text {
+  color: #27ae60;
+  font-weight: 500;
+  padding: 8px 12px;
+  background: #f0fff4;
+  border-radius: 6px;
+  border-left: 3px solid #27ae60;
+}
+
+.incorrect-text {
+  color: #e74c3c;
+  font-weight: 500;
+  padding: 8px 12px;
+  background: #fff5f5;
+  border-radius: 6px;
+  border-left: 3px solid #e74c3c;
+}
+
+.results-actions {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+  .results-header h1 {
+    font-size: 1.5rem;
+  }
+  
+  .results-header h2 {
+    font-size: 1.2rem;
+  }
+  
+  .score-percentage {
+    font-size: 3rem;
+  }
+  
+  .score-label {
+    font-size: 1.2rem;
+  }
+  
+  .detailed-results {
+    padding: 20px;
+  }
+  
+  .result-item {
+    padding: 15px;
+  }
+  
+  .results-actions {
+    flex-direction: column;
+  }
+  
+  .results-actions button {
+    width: 100%;
+  }
+}

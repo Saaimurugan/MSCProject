@@ -1,0 +1,47 @@
+{
+  "TAKE_QUIZ_SUCCESS": {
+    "description": "GET /quiz/{templateId} - Get quiz without correct answers (replace TEMPLATE_ID with actual ID)",
+    "event": {
+      "httpMethod": "GET",
+      "path": "/quiz/TEMPLATE_ID",
+      "pathParameters": {
+        "templateId": "TEMPLATE_ID"
+      }
+    },
+    "expected_response": {
+      "statusCode": 200,
+      "body_contains": ["quiz", "template_id", "title", "questions"],
+      "body_should_not_contain": ["correct_answer"]
+    },
+    "notes": "Questions should NOT include correct_answer field"
+  },
+
+  "TAKE_QUIZ_NOT_FOUND": {
+    "description": "GET /quiz/{templateId} - Template not found",
+    "event": {
+      "httpMethod": "GET",
+      "path": "/quiz/non-existent-id",
+      "pathParameters": {
+        "templateId": "non-existent-id"
+      }
+    },
+    "expected_response": {
+      "statusCode": 404,
+      "body_contains": ["Template not found"]
+    }
+  },
+
+  "OPTIONS_CORS_PREFLIGHT": {
+    "description": "OPTIONS /quiz/{templateId} - CORS preflight request",
+    "event": {
+      "httpMethod": "OPTIONS",
+      "path": "/quiz/any-id",
+      "pathParameters": {
+        "templateId": "any-id"
+      }
+    },
+    "expected_response": {
+      "statusCode": 200
+    }
+  }
+}

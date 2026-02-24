@@ -7,33 +7,22 @@ import uuid
 # DynamoDB setup
 dynamodb = boto3.resource('dynamodb')
 
-def get_cors_headers():
-    return {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
-        'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS'
-    }
-
-def get_template(template_id: str) -> Optional[Dict]:
-    """Get template from DynamoDB"""
-    try:
+# Database Models
+class Template:
+    def __init__(self):
         table_name = 'msc-evaluate-templates-dev'
-        table = dynamodb.Table(table_name)
-        response = table.get_item(Key={'template_id': template_id})
+        self.table = dynamodb.Table(table_name)
+    
+    def get_item(self, key):
+        response = self.table.get_item(Key=key)
         return response.get('Item')
-    except Exception as e:
-        print(f"Error getting template: {e}")
-        return None
 
-def save_quiz_result(session_id: str, template_id: str, answers: list, 
-                    total_score: float, correct_count: int, total_questions: int,
-                    detailed_results: list) -> Dict:
-    """Save quiz result to DynamoDB"""
-    try:
+class QuizResult:
+    def __init__(self):
         table_name = 'msc-evaluate-quiz-results-dev'
-        table = dynamodb.Table(table_name)
-        
+        self.table = dynamodb.Table(table_name)
+    
+    def save_result(self, template_id, session_id, answers, total_score, correct_count, total_questions):
         result_id = str(uuid.uuid4())
         result = {
             'result_id': result_id,
@@ -47,12 +36,16 @@ def save_quiz_result(session_id: str, template_id: str, answers: list,
             'created_at': datetime.utcnow().isoformat(),
             'updated_at': datetime.utcnow().isoformat()
         }
-        
-        table.put_item(Item=result)
+        self.table.put_item(Item=result)
         return result
-    except Exception as e:
-        print(f"Error saving quiz result: {e}")
-        raise e
+
+def get_cors_headers():
+    return {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
+        'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS'
+    }
 
 def lambda_handler(event, context):
     # Handle OPTIONS request for CORS preflight
@@ -89,7 +82,8 @@ def lambda_handler(event, context):
             session_id = str(uuid.uuid4())
         
         # Get template to access correct answers
-        template = get_template(template_id)
+        template_model = Template()
+        template = template_model.get_item({'template_id': template_id})
         
         if not template:
             return {
@@ -149,14 +143,14 @@ def lambda_handler(event, context):
         total_score = (correct_count / total_questions * 100) if total_questions > 0 else 0
         
         # Save results to database
-        result = save_quiz_result(
+        quiz_result_model = QuizResult()
+        result = quiz_result_model.save_result(
             session_id=session_id,
             template_id=template_id,
             answers=answers,
             total_score=total_score,
             correct_count=correct_count,
-            total_questions=total_questions,
-            detailed_results=detailed_results
+            total_questions=total_questions
         )
         
         return {

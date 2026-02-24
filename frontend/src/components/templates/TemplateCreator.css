@@ -1,0 +1,21 @@
+/* TemplateCreator specific styles */
+.template-creator-container {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+}
+
+.question-card {
+  transition: all 0.3s ease;
+}
+
+.question-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.option-paper {
+  transition: background-color 0.2s ease;
+}
+
+.option-paper:hover {
+  background-color: #e8e8e8;
+}

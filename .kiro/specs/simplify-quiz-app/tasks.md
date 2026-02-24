@@ -129,7 +129,7 @@ This implementation plan outlines the steps to simplify the quiz application by 
     - Add endpoint for get_template_by_id
     - _Requirements: 7.1, 7.2, 7.3, 7.4_
 
-- [ ] 7. Repurpose and update frontend components
+- [x] 7. Repurpose and update frontend components
   - [x] 7.1 Repurpose Dashboard as landing page
     - Modify `frontend/src/components/dashboard/Dashboard.js`
     - Remove user-specific content
@@ -137,14 +137,14 @@ This implementation plan outlines the steps to simplify the quiz application by 
     - Display available templates
     - _Requirements: 8.1, 8.2_
   
-  - [-] 7.2 Update template creation interface
+  - [x] 7.2 Update template creation interface
     - Ensure form validates title, subject, course as non-empty
     - Ensure question builder validates min 2 options per question
     - Ensure correct answer must be designated
     - Add visual feedback for validation errors
     - _Requirements: 1.1, 1.2, 1.3, 1.5_
   
-  - [~] 7.3 Update quiz taking interface
+  - [x] 7.3 Update quiz taking interface
     - Remove authentication requirements
     - Ensure questions don't show correct answers during quiz
     - Validate all questions answered before submission
@@ -152,22 +152,22 @@ This implementation plan outlines the steps to simplify the quiz application by 
     - Show correct answers in results view
     - _Requirements: 3.1, 3.2, 3.3, 3.5, 4.1, 4.2, 4.3_
   
-  - [~] 7.4 Update App.js routing
+  - [x] 7.4 Update App.js routing
     - Remove authentication-protected routes
     - Remove login/signup routes
     - Update navigation to simplified structure
     - Set landing page as default route
     - _Requirements: 8.1, 8.2_
 
-- [ ] 8. Update API Gateway configuration
-  - [~] 8.1 Remove unused API endpoints
+- [x] 8. Update API Gateway configuration
+  - [x] 8.1 Remove unused API endpoints
     - Remove all auth endpoints (login, signup)
     - Remove all profile endpoints
     - Remove all admin endpoints
     - Remove all reports endpoints
     - _Requirements: 6.5_
   
-  - [~] 8.2 Update remaining endpoints
+  - [x] 8.2 Update remaining endpoints
     - Remove authorizers from template endpoints
     - Remove authorizers from quiz endpoints
     - Add new get_template_by_id endpoint
@@ -175,20 +175,20 @@ This implementation plan outlines the steps to simplify the quiz application by 
     - _Requirements: 7.1, 7.2, 7.3, 7.4_
 
 - [ ] 9. Integration testing and deployment
-  - [~] 9.1 Write integration tests for complete flows
+  - [x] 9.1 Write integration tests for complete flows
     - Test create template → retrieve template flow
     - Test retrieve templates → take quiz → submit quiz → view results flow
     - Test template filtering
     - Test error scenarios end-to-end
     - _Requirements: 1.4, 2.3, 3.4, 4.4_
   
-  - [~] 9.2 Update deployment scripts
+  - [x] 9.2 Update deployment scripts
     - Update `deploy-api.ps1` to remove unused Lambda functions
     - Update `deploy-frontend.ps1` if needed
     - Update `create-dynamodb-tables.ps1` to remove Users table creation
     - _Requirements: 9.1_
   
-  - [~] 9.3 Test backward compatibility
+  - [-] 9.3 Test backward compatibility
     - Verify existing templates with created_by field still work
     - Verify existing quiz results with user_id field still work
     - Ensure no data migration is required
