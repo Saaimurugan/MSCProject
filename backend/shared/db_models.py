@@ -32,31 +32,6 @@ class BaseModel:
         )
         return response['Attributes']
 
-class User(BaseModel):
-    def __init__(self):
-        import os
-        table_name = os.environ.get('USERS_TABLE', 'msc-evaluate-users-dev')
-        super().__init__(table_name)
-    
-    def create_user(self, email: str, name: str, role: str = 'student') -> Dict:
-        user_id = str(uuid.uuid4())
-        user = {
-            'user_id': user_id,
-            'email': email,
-            'name': name,
-            'role': role,  # student, tutor, admin
-            'is_active': True
-        }
-        return self.create_item(user)
-    
-    def get_user_by_email(self, email: str) -> Optional[Dict]:
-        response = self.table.scan(
-            FilterExpression='email = :email',
-            ExpressionAttributeValues={':email': email}
-        )
-        items = response.get('Items', [])
-        return items[0] if items else None
-
 class Template(BaseModel):
     def __init__(self):
         import os
@@ -64,7 +39,7 @@ class Template(BaseModel):
         super().__init__(table_name)
     
     def create_template(self, title: str, subject: str, course: str, 
-                       questions: List[Dict], created_by: str) -> Dict:
+                       questions: List[Dict]) -> Dict:
         template_id = str(uuid.uuid4())
         template = {
             'template_id': template_id,
@@ -72,7 +47,6 @@ class Template(BaseModel):
             'subject': subject,
             'course': course,
             'questions': questions,
-            'created_by': created_by,
             'is_active': True
         }
         return self.create_item(template)
@@ -94,24 +68,24 @@ class QuizResult(BaseModel):
         table_name = os.environ.get('QUIZ_RESULTS_TABLE', 'msc-evaluate-quiz-results-dev')
         super().__init__(table_name)
     
-    def save_result(self, user_id: str, template_id: str, student_name: str, 
-                   student_id: str, answers: List[Dict], total_score: float) -> Dict:
+    def save_result(self, template_id: str, session_id: str, answers: List[Dict], 
+                   total_score: float, correct_count: int, total_questions: int) -> Dict:
         result_id = str(uuid.uuid4())
         result = {
             'result_id': result_id,
-            'user_id': user_id,
+            'session_id': session_id,
             'template_id': template_id,
-            'student_name': student_name,
-            'student_id': student_id,
             'answers': answers,
             'total_score': total_score,
+            'correct_count': correct_count,
+            'total_questions': total_questions,
             'completed_at': datetime.utcnow().isoformat()
         }
         return self.create_item(result)
     
-    def get_user_results(self, user_id: str) -> List[Dict]:
+    def get_session_results(self, session_id: str) -> List[Dict]:
         response = self.table.scan(
-            FilterExpression='user_id = :user_id',
-            ExpressionAttributeValues={':user_id': user_id}
+            FilterExpression='session_id = :session_id',
+            ExpressionAttributeValues={':session_id': session_id}
         )
         return response.get('Items', [])

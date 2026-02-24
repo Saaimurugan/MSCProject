@@ -1,0 +1,4 @@
+# file: D:\MSCProject\MSCProject\backend\quiz\submit_quiz.py
+# hypothesis_version: 6.151.9
+
+[100, 200, 400, 404, 500, '*', 'Answers are required', 'Content-Type', 'Item', 'OPTIONS', 'Template not found', 'answered_questions', 'answers', 'application/json', 'body', 'completed_at', 'correct_answer', 'correct_count', 'created_at', 'detailed_results', 'dynamodb', 'error', 'expected_questions', 'headers', 'httpMethod', 'is_correct', 'question_index', 'questions', 'result_id', 'selected_answer', 'session_id', 'statusCode', 'template_id', 'total_questions', 'total_score', 'updated_at']

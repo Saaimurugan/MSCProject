@@ -1,0 +1,4 @@
+# file: C:\Users\Chitra\AppData\Roaming\Python\Python314\site-packages\allure_pytest\listener.py
+# hypothesis_version: 6.151.9
+
+['XFAIL', 'XPASS', '__name__', '_finalizers', '_request', 'cached_result', 'call', 'callspec', 'fixturenames', 'log', 'package', 'pytest', 'setup', 'stderr', 'stdout', 'teardown', 'wasxfail']

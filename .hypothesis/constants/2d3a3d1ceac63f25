@@ -1,0 +1,4 @@
+# file: D:\MSCProject\MSCProject\backend\shared\db_models.py
+# hypothesis_version: 6.151.9
+
+[', ', ':active', ':course', ':session_id', ':subject', 'ALL_NEW', 'Attributes', 'Item', 'Items', 'QUIZ_RESULTS_TABLE', 'SET ', 'TEMPLATES_TABLE', 'answers', 'completed_at', 'correct_count', 'course', 'created_at', 'dynamodb', 'is_active', 'questions', 'result_id', 'session_id', 'subject', 'template_id', 'title', 'total_questions', 'total_score', 'updated_at']

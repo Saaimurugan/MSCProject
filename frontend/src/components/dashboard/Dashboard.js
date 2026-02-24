@@ -11,32 +11,22 @@ import {
   Button,
   AppBar,
   Toolbar,
-  IconButton,
-  Menu,
-  MenuItem,
   Chip,
   FormControl,
   InputLabel,
   Select,
   CircularProgress,
   Alert,
-  Avatar,
   Fab,
   Tooltip,
 } from '@mui/material';
 import {
-  AccountCircle,
-  Logout,
   Quiz,
-  Assessment,
-  AdminPanelSettings,
   Add,
   FilterList,
   School,
-  Person,
 } from '@mui/icons-material';
 import { templatesAPI } from '../../services/api';
-import { AuthService } from '../../services/auth';
 
 const Dashboard = () => {
   const [templates, setTemplates] = useState([]);
@@ -44,9 +34,7 @@ const Dashboard = () => {
   const [error, setError] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('');
   const [selectedCourse, setCourse] = useState('');
-  const [anchorEl, setAnchorEl] = useState(null);
   const navigate = useNavigate();
-  const user = AuthService.getUser();
 
   useEffect(() => {
     loadTemplates();
@@ -72,27 +60,6 @@ const Dashboard = () => {
     navigate('/template/create');
   };
 
-  const handleMenuOpen = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-  };
-
-  const handleLogout = () => {
-    AuthService.logout();
-  };
-
-  const getRoleColor = (role) => {
-    switch (role) {
-      case 'admin': return 'error';
-      case 'tutor': return 'warning';
-      case 'student': return 'success';
-      default: return 'default';
-    }
-  };
-
   // Group templates by subject and course
   const groupedTemplates = templates.reduce((acc, template) => {
     const key = `${template.subject} - ${template.course}`;
@@ -109,51 +76,16 @@ const Dashboard = () => {
         <Toolbar>
           <School sx={{ mr: 2 }} />
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            MSC Evaluate Dashboard
+            Quiz Application
           </Typography>
           
-          <Box display="flex" alignItems="center" gap={2}>
-            <Chip
-              label={user?.role?.toUpperCase()}
-              color={getRoleColor(user?.role)}
-              size="small"
-              sx={{ color: 'white', borderColor: 'rgba(255,255,255,0.3)' }}
-              variant="outlined"
-            />
-            <IconButton
-              size="large"
-              edge="end"
-              color="inherit"
-              onClick={handleMenuOpen}
-            >
-              <Avatar sx={{ width: 32, height: 32, bgcolor: 'rgba(255,255,255,0.2)' }}>
-                <Person fontSize="small" />
-              </Avatar>
-            </IconButton>
-          </Box>
-
-          <Menu
-            anchorEl={anchorEl}
-            open={Boolean(anchorEl)}
-            onClose={handleMenuClose}
-            transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-            anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+          <Button 
+            color="inherit" 
+            startIcon={<Add />}
+            onClick={handleCreateTemplate}
           >
-            <MenuItem onClick={() => { navigate('/profile'); handleMenuClose(); }}>
-              <AccountCircle sx={{ mr: 1 }} /> Profile
-            </MenuItem>
-            <MenuItem onClick={() => { navigate('/reports'); handleMenuClose(); }}>
-              <Assessment sx={{ mr: 1 }} /> Reports
-            </MenuItem>
-            {AuthService.hasRole('admin') && (
-              <MenuItem onClick={() => { navigate('/admin'); handleMenuClose(); }}>
-                <AdminPanelSettings sx={{ mr: 1 }} /> Admin Panel
-              </MenuItem>
-            )}
-            <MenuItem onClick={handleLogout}>
-              <Logout sx={{ mr: 1 }} /> Logout
-            </MenuItem>
-          </Menu>
+            Create Template
+          </Button>
         </Toolbar>
       </AppBar>
 
@@ -161,10 +93,10 @@ const Dashboard = () => {
         {/* Welcome Section */}
         <Box mb={4}>
           <Typography variant="h4" gutterBottom>
-            Welcome back, {user?.name}! 👋
+            Welcome to Quiz Application! 👋
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Ready to take some quizzes? Choose from the available templates below.
+            Create quiz templates or take quizzes from available templates below.
           </Typography>
         </Box>
 
@@ -232,9 +164,7 @@ const Dashboard = () => {
                     No templates found
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    {AuthService.hasAnyRole(['admin', 'tutor']) 
-                      ? 'Create your first template to get started!' 
-                      : 'Check back later for new assignments.'}
+                    Create your first template to get started!
                   </Typography>
                 </CardContent>
               </Card>
@@ -298,21 +228,19 @@ const Dashboard = () => {
       </Container>
 
       {/* Floating Action Button for Create Template */}
-      {AuthService.hasAnyRole(['admin', 'tutor']) && (
-        <Tooltip title="Create Template">
-          <Fab
-            color="primary"
-            sx={{
-              position: 'fixed',
-              bottom: 24,
-              right: 24,
-            }}
-            onClick={handleCreateTemplate}
-          >
-            <Add />
-          </Fab>
-        </Tooltip>
-      )}
+      <Tooltip title="Create Template">
+        <Fab
+          color="primary"
+          sx={{
+            position: 'fixed',
+            bottom: 24,
+            right: 24,
+          }}
+          onClick={handleCreateTemplate}
+        >
+          <Add />
+        </Fab>
+      </Tooltip>
     </Box>
   );
 };

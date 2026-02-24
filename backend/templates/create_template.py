@@ -4,31 +4,86 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from shared.db_models import Template
-from shared.auth_utils import require_auth
 
-@require_auth(roles=['admin', 'tutor'])
+def get_cors_headers():
+    return {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS'
+    }
+
 def lambda_handler(event, context):
     try:
         body = json.loads(event['body'])
-        title = body.get('title')
-        subject = body.get('subject')
-        course = body.get('course')
+        title = body.get('title', '').strip()
+        subject = body.get('subject', '').strip()
+        course = body.get('course', '').strip()
         questions = body.get('questions', [])
         
-        if not title or not subject or not course or not questions:
+        # Validate non-empty title, subject, course
+        if not title:
             return {
                 'statusCode': 400,
-                'headers': {'Content-Type': 'application/json'},
-                'body': json.dumps({'error': 'Title, subject, course, and questions are required'})
+                'headers': get_cors_headers(),
+                'body': json.dumps({'error': 'Validation Error', 'message': 'Title is required and cannot be empty'})
+            }
+        
+        if not subject:
+            return {
+                'statusCode': 400,
+                'headers': get_cors_headers(),
+                'body': json.dumps({'error': 'Validation Error', 'message': 'Subject is required and cannot be empty'})
+            }
+        
+        if not course:
+            return {
+                'statusCode': 400,
+                'headers': get_cors_headers(),
+                'body': json.dumps({'error': 'Validation Error', 'message': 'Course is required and cannot be empty'})
+            }
+        
+        if not questions:
+            return {
+                'statusCode': 400,
+                'headers': get_cors_headers(),
+                'body': json.dumps({'error': 'Validation Error', 'message': 'At least one question is required'})
             }
         
         # Validate questions format
         for i, question in enumerate(questions):
-            if not question.get('question') or not question.get('example_answer'):
+            question_text = question.get('question_text', '').strip()
+            options = question.get('options', [])
+            correct_answer = question.get('correct_answer')
+            
+            if not question_text:
                 return {
                     'statusCode': 400,
-                    'headers': {'Content-Type': 'application/json'},
-                    'body': json.dumps({'error': f'Question {i+1} must have question and example_answer'})
+                    'headers': get_cors_headers(),
+                    'body': json.dumps({'error': 'Validation Error', 'message': f'Question {i+1} must have question_text'})
+                }
+            
+            # Validate minimum 2 options
+            if not options or len(options) < 2:
+                return {
+                    'statusCode': 400,
+                    'headers': get_cors_headers(),
+                    'body': json.dumps({'error': 'Validation Error', 'message': f'Question {i+1} must have at least 2 answer options'})
+                }
+            
+            # Validate correct answer is required and valid
+            if correct_answer is None:
+                return {
+                    'statusCode': 400,
+                    'headers': get_cors_headers(),
+                    'body': json.dumps({'error': 'Validation Error', 'message': f'Question {i+1} must have a correct answer designated'})
+                }
+            
+            if not isinstance(correct_answer, int) or correct_answer < 0 or correct_answer >= len(options):
+                return {
+                    'statusCode': 400,
+                    'headers': get_cors_headers(),
+                    'body': json.dumps({'error': 'Validation Error', 'message': f'Question {i+1} has invalid correct_answer index'})
                 }
         
         template_model = Template()
@@ -36,22 +91,27 @@ def lambda_handler(event, context):
             title=title,
             subject=subject,
             course=course,
-            questions=questions,
-            created_by=event['user']['user_id']
+            questions=questions
         )
         
         return {
             'statusCode': 201,
-            'headers': {'Content-Type': 'application/json'},
+            'headers': get_cors_headers(),
             'body': json.dumps({
                 'template_id': template['template_id'],
                 'message': 'Template created successfully'
             })
         }
         
+    except json.JSONDecodeError:
+        return {
+            'statusCode': 400,
+            'headers': get_cors_headers(),
+            'body': json.dumps({'error': 'Invalid JSON', 'message': 'Request body must be valid JSON'})
+        }
     except Exception as e:
         return {
             'statusCode': 500,
-            'headers': {'Content-Type': 'application/json'},
-            'body': json.dumps({'error': str(e)})
+            'headers': get_cors_headers(),
+            'body': json.dumps({'error': 'Internal Server Error', 'message': 'Unable to process request'})
         }

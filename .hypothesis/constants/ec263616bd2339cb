@@ -1,0 +1,4 @@
+# file: D:\MSCProject\MSCProject\backend\quiz\take_quiz.py
+# hypothesis_version: 6.151.9
+
+[200, 404, 500, 3600, '*', 'Content-Type', 'Item', 'OPTIONS', 'Template not found', 'application/json', 'body', 'course', 'dynamodb', 'error', 'headers', 'httpMethod', 'instructions', 'options', 'pathParameters', 'question_text', 'questions', 'quiz', 'statusCode', 'subject', 'templateId', 'template_id', 'time_limit', 'title']

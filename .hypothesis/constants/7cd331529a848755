@@ -1,0 +1,4 @@
+# file: D:\MSCProject\MSCProject\backend\templates\get_templates.py
+# hypothesis_version: 6.151.9
+
+[200, 500, '*', ':active', ':course', ':subject', 'Content-Type', 'Items', 'OPTIONS', 'application/json', 'body', 'count', 'course', 'dynamodb', 'error', 'headers', 'httpMethod', 'is_active = :active', 'question_count', 'questions', 'statusCode', 'subject', 'templates']

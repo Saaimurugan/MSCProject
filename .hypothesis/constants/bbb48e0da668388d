@@ -1,0 +1,4 @@
+# file: C:\Users\Chitra\AppData\Roaming\Python\Python314\site-packages\allure.py
+# hypothesis_version: 6.151.9
+
+['attach', 'attachment_type', 'description', 'description_html', 'dynamic', 'epic', 'feature', 'id', 'issue', 'label', 'link', 'manual', 'parameter_mode', 'parent_suite', 'severity', 'severity_level', 'step', 'story', 'sub_suite', 'suite', 'tag', 'testcase', 'title']

@@ -1,0 +1,4 @@
+# file: C:\Users\Chitra\AppData\Roaming\Python\Python314\site-packages\allure_pytest\plugin.py
+# hypothesis_version: 6.151.9
+
+[',', ', ', '--allure-epics', '--allure-features', '--allure-ids', '--allure-label', '--allure-no-capture', '--allure-severities', '--allure-stories', '--alluredir', '--clean-alluredir', '--inversion', ':', '=', 'DIR', 'EPICS_SET', 'FEATURES_SET', 'IDS_SET', 'LABELS_SET', 'SEVERITIES_SET', 'STORIES_SET', 'allure_epics', 'allure_features', 'allure_ids', 'allure_labels', 'allure_link_pattern', 'allure_listener', 'allure_report_dir', 'allure_severities', 'allure_stories', 'append', 'attach_capture', 'clean_alluredir', 'general', 'id', 'inversion', 'markers', 'reporting', 'selector', 'store', 'store_false', 'store_true']

@@ -1,0 +1,4 @@
+# file: D:\MSCProject\MSCProject\backend\templates\create_template.py
+# hypothesis_version: 6.151.9
+
+[201, 400, 500, '*', 'Content-Type', 'Invalid JSON', 'POST, OPTIONS', 'Validation Error', 'application/json', 'body', 'correct_answer', 'course', 'error', 'headers', 'message', 'options', 'question_text', 'questions', 'statusCode', 'subject', 'template_id', 'title']

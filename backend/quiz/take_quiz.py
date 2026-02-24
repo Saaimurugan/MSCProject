@@ -1,34 +1,9 @@
 import json
 import boto3
-import jwt
-from datetime import datetime
 from typing import Dict, Optional
-
-# JWT Configuration
-JWT_SECRET = 'your-jwt-secret-key-change-in-production'
-JWT_ALGORITHM = "HS256"
 
 # DynamoDB setup
 dynamodb = boto3.resource('dynamodb')
-
-def verify_jwt_token(token: str) -> Optional[Dict]:
-    """Verify and decode JWT token"""
-    try:
-        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-        return payload
-    except jwt.ExpiredSignatureError:
-        return None
-    except jwt.InvalidTokenError:
-        return None
-
-def extract_token_from_event(event: Dict) -> Optional[str]:
-    """Extract JWT token from Lambda event"""
-    headers = event.get('headers', {})
-    auth_header = headers.get('Authorization') or headers.get('authorization')
-    
-    if auth_header and auth_header.startswith('Bearer '):
-        return auth_header[7:]  # Remove 'Bearer ' prefix
-    return None
 
 def get_template_by_id(template_id: str) -> Optional[Dict]:
     """Get template by ID from DynamoDB"""
@@ -60,23 +35,6 @@ def lambda_handler(event, context):
         }
     
     try:
-        # Verify authentication
-        token = extract_token_from_event(event)
-        if not token:
-            return {
-                'statusCode': 401,
-                'headers': get_cors_headers(),
-                'body': json.dumps({'error': 'No token provided'})
-            }
-        
-        user_data = verify_jwt_token(token)
-        if not user_data:
-            return {
-                'statusCode': 401,
-                'headers': get_cors_headers(),
-                'body': json.dumps({'error': 'Invalid or expired token'})
-            }
-        
         # Get template ID from path parameters
         template_id = event['pathParameters']['templateId']
         
@@ -89,13 +47,23 @@ def lambda_handler(event, context):
                 'body': json.dumps({'error': 'Template not found'})
             }
         
+        # Remove correct answers from questions before sending to client
+        questions_without_answers = []
+        for question in template.get('questions', []):
+            question_copy = {
+                'question_text': question['question_text'],
+                'options': question['options']
+                # Intentionally omit 'correct_answer' field
+            }
+            questions_without_answers.append(question_copy)
+        
         # Return template data for quiz taking
         quiz_data = {
             'template_id': template['template_id'],
             'title': template['title'],
             'subject': template['subject'],
             'course': template['course'],
-            'questions': template.get('questions', []),
+            'questions': questions_without_answers,
             'time_limit': template.get('time_limit', 3600),  # Default 1 hour
             'instructions': template.get('instructions', 'Answer all questions to the best of your ability.')
         }
@@ -103,13 +71,7 @@ def lambda_handler(event, context):
         return {
             'statusCode': 200,
             'headers': get_cors_headers(),
-            'body': json.dumps({
-                'quiz': quiz_data,
-                'user': {
-                    'user_id': user_data['user_id'],
-                    'name': user_data.get('name', 'Unknown')
-                }
-            })
+            'body': json.dumps({'quiz': quiz_data})
         }
         
     except Exception as e:
