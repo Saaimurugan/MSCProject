@@ -2,11 +2,23 @@ import json
 import boto3
 from datetime import datetime
 from typing import Dict, Optional
+from decimal import Decimal
 import uuid
 
 # DynamoDB and Lambda setup
 dynamodb = boto3.resource('dynamodb')
 lambda_client = boto3.client('lambda')
+
+# Helper function to convert float to Decimal for DynamoDB
+def convert_to_decimal(obj):
+    if isinstance(obj, list):
+        return [convert_to_decimal(i) for i in obj]
+    elif isinstance(obj, dict):
+        return {k: convert_to_decimal(v) for k, v in obj.items()}
+    elif isinstance(obj, float):
+        return Decimal(str(obj))
+    else:
+        return obj
 
 # Database Models
 class Template:
@@ -29,9 +41,9 @@ class QuizResult:
             'result_id': result_id,
             'session_id': session_id,
             'template_id': template_id,
-            'answers': answers,
-            'evaluations': evaluations,
-            'average_score': average_score,
+            'answers': convert_to_decimal(answers),
+            'evaluations': convert_to_decimal(evaluations),
+            'average_score': Decimal(str(average_score)),
             'total_questions': total_questions,
             'completed_at': datetime.utcnow().isoformat(),
             'created_at': datetime.utcnow().isoformat(),
@@ -231,7 +243,7 @@ def lambda_handler(event, context):
             'body': json.dumps({
                 'result_id': result['result_id'],
                 'session_id': session_id,
-                'average_score': average_score,
+                'average_score': float(average_score),
                 'total_questions': total_questions,
                 'evaluations': evaluations
             })
