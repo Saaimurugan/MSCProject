@@ -29,6 +29,8 @@ import {
   School,
 } from '@mui/icons-material';
 import { templatesAPI } from '../../services/api';
+import MenuItem from '@mui/material/MenuItem';
+import Select from '@mui/material/Select';
 
 const TemplateCreator = () => {
   const navigate = useNavigate();
@@ -43,8 +45,10 @@ const TemplateCreator = () => {
   const [questions, setQuestions] = useState([
     {
       question_text: '',
+      question_type: 'multiple_choice', // 'multiple_choice' or 'elaborate'
       options: ['', ''],
       correct_answer: 0,
+      example_answer: '', // For elaborate questions
     },
   ]);
 
@@ -89,6 +93,7 @@ const TemplateCreator = () => {
         question_text: '',
         options: '',
         correct_answer: '',
+        example_answer: '',
       };
 
       if (!question.question_text.trim()) {
@@ -96,18 +101,21 @@ const TemplateCreator = () => {
         isValid = false;
       }
 
-      // Validate minimum 2 options
-      const nonEmptyOptions = question.options.filter(opt => opt.trim() !== '');
-      if (nonEmptyOptions.length < 2) {
-        questionErrors.options = 'At least 2 answer options are required';
-        isValid = false;
-      }
+      if (question.question_type === 'multiple_choice') {
+        // Validate minimum 2 options for multiple choice
+        const nonEmptyOptions = question.options.filter(opt => opt.trim() !== '');
+        if (nonEmptyOptions.length < 2) {
+          questionErrors.options = 'At least 2 answer options are required';
+          isValid = false;
+        }
 
-      // Validate correct answer is designated
-      if (question.correct_answer === null || question.correct_answer === undefined) {
-        questionErrors.correct_answer = 'A correct answer must be designated';
-        isValid = false;
+        // Validate correct answer is designated
+        if (question.correct_answer === null || question.correct_answer === undefined) {
+          questionErrors.correct_answer = 'A correct answer must be designated';
+          isValid = false;
+        }
       }
+      // No validation for elaborate questions - example answer is optional
 
       errors.questions[index] = questionErrors;
     });
@@ -121,8 +129,10 @@ const TemplateCreator = () => {
       ...questions,
       {
         question_text: '',
+        question_type: 'multiple_choice',
         options: ['', ''],
         correct_answer: 0,
+        example_answer: '',
       },
     ]);
   };
@@ -211,12 +221,23 @@ const TemplateCreator = () => {
     try {
       setLoading(true);
       
-      // Filter out empty options before submitting
-      const cleanedQuestions = questions.map(q => ({
-        question_text: q.question_text.trim(),
-        options: q.options.filter(opt => opt.trim() !== ''),
-        correct_answer: q.correct_answer,
-      }));
+      // Filter out empty options and prepare questions based on type
+      const cleanedQuestions = questions.map(q => {
+        if (q.question_type === 'elaborate') {
+          return {
+            question_text: q.question_text.trim(),
+            question_type: 'elaborate',
+            example_answer: q.example_answer.trim(),
+          };
+        } else {
+          return {
+            question_text: q.question_text.trim(),
+            question_type: 'multiple_choice',
+            options: q.options.filter(opt => opt.trim() !== ''),
+            correct_answer: q.correct_answer,
+          };
+        }
+      });
 
       const templateData = {
         title: title.trim(),
@@ -348,71 +369,107 @@ const TemplateCreator = () => {
                   required
                 />
 
+                <FormControl fullWidth margin="normal">
+                  <FormLabel>Question Type</FormLabel>
+                  <Select
+                    value={question.question_type}
+                    onChange={(e) => handleQuestionChange(questionIndex, 'question_type', e.target.value)}
+                  >
+                    <MenuItem value="multiple_choice">Multiple Choice</MenuItem>
+                    <MenuItem value="elaborate">Elaborate Answer</MenuItem>
+                  </Select>
+                </FormControl>
+
                 <Divider sx={{ my: 2 }} />
 
-                <FormControl 
-                  component="fieldset" 
-                  fullWidth
-                  error={!!validationErrors.questions[questionIndex]?.options || !!validationErrors.questions[questionIndex]?.correct_answer}
-                >
-                  <FormLabel component="legend">
-                    Answer Options (select the correct answer)
-                  </FormLabel>
-                  
-                  {validationErrors.questions[questionIndex]?.options && (
-                    <Alert severity="error" sx={{ mt: 1, mb: 2 }}>
-                      {validationErrors.questions[questionIndex].options}
-                    </Alert>
-                  )}
-                  
-                  {validationErrors.questions[questionIndex]?.correct_answer && (
-                    <Alert severity="error" sx={{ mt: 1, mb: 2 }}>
-                      {validationErrors.questions[questionIndex].correct_answer}
-                    </Alert>
-                  )}
-
-                  <RadioGroup
-                    value={question.correct_answer}
-                    onChange={(e) => handleCorrectAnswerChange(questionIndex, parseInt(e.target.value))}
+                {question.question_type === 'multiple_choice' ? (
+                  <FormControl 
+                    component="fieldset" 
+                    fullWidth
+                    error={!!validationErrors.questions[questionIndex]?.options || !!validationErrors.questions[questionIndex]?.correct_answer}
                   >
-                    {question.options.map((option, optionIndex) => (
-                      <Paper key={optionIndex} elevation={0} sx={{ p: 2, mb: 1, bgcolor: 'grey.50' }}>
-                        <Box display="flex" alignItems="center" gap={1}>
-                          <FormControlLabel
-                            value={optionIndex}
-                            control={<Radio />}
-                            label=""
-                            sx={{ m: 0 }}
-                          />
-                          <TextField
-                            fullWidth
-                            label={`Option ${optionIndex + 1}`}
-                            value={option}
-                            onChange={(e) => handleOptionChange(questionIndex, optionIndex, e.target.value)}
-                            size="small"
-                          />
-                          {question.options.length > 2 && (
-                            <IconButton
-                              color="error"
-                              onClick={() => handleRemoveOption(questionIndex, optionIndex)}
+                    <FormLabel component="legend">
+                      Answer Options (select the correct answer)
+                    </FormLabel>
+                    
+                    {validationErrors.questions[questionIndex]?.options && (
+                      <Alert severity="error" sx={{ mt: 1, mb: 2 }}>
+                        {validationErrors.questions[questionIndex].options}
+                      </Alert>
+                    )}
+                    
+                    {validationErrors.questions[questionIndex]?.correct_answer && (
+                      <Alert severity="error" sx={{ mt: 1, mb: 2 }}>
+                        {validationErrors.questions[questionIndex].correct_answer}
+                      </Alert>
+                    )}
+
+                    <RadioGroup
+                      value={question.correct_answer}
+                      onChange={(e) => handleCorrectAnswerChange(questionIndex, parseInt(e.target.value))}
+                    >
+                      {question.options.map((option, optionIndex) => (
+                        <Paper key={optionIndex} elevation={0} sx={{ p: 2, mb: 1, bgcolor: 'grey.50' }}>
+                          <Box display="flex" alignItems="center" gap={1}>
+                            <FormControlLabel
+                              value={optionIndex}
+                              control={<Radio />}
+                              label=""
+                              sx={{ m: 0 }}
+                            />
+                            <TextField
+                              fullWidth
+                              label={`Option ${optionIndex + 1}`}
+                              value={option}
+                              onChange={(e) => handleOptionChange(questionIndex, optionIndex, e.target.value)}
                               size="small"
-                            >
-                              <Delete />
-                            </IconButton>
-                          )}
-                        </Box>
-                      </Paper>
-                    ))}
-                  </RadioGroup>
+                            />
+                            {question.options.length > 2 && (
+                              <IconButton
+                                color="error"
+                                onClick={() => handleRemoveOption(questionIndex, optionIndex)}
+                                size="small"
+                              >
+                                <Delete />
+                              </IconButton>
+                            )}
+                          </Box>
+                        </Paper>
+                      ))}
+                    </RadioGroup>
 
-                  <Button
-                    startIcon={<Add />}
-                    onClick={() => handleAddOption(questionIndex)}
-                    sx={{ mt: 1 }}
-                  >
-                    Add Option
-                  </Button>
-                </FormControl>
+                    <Button
+                      startIcon={<Add />}
+                      onClick={() => handleAddOption(questionIndex)}
+                      sx={{ mt: 1 }}
+                    >
+                      Add Option
+                    </Button>
+                  </FormControl>
+                ) : (
+                  <FormControl fullWidth>
+                    <FormLabel component="legend">
+                      Example Answer (optional - for reference/grading)
+                    </FormLabel>
+                    
+                    {validationErrors.questions[questionIndex]?.example_answer && (
+                      <Alert severity="error" sx={{ mt: 1, mb: 2 }}>
+                        {validationErrors.questions[questionIndex].example_answer}
+                      </Alert>
+                    )}
+                    
+                    <TextField
+                      fullWidth
+                      label="Example Answer"
+                      value={question.example_answer || ''}
+                      onChange={(e) => handleQuestionChange(questionIndex, 'example_answer', e.target.value)}
+                      margin="normal"
+                      multiline
+                      rows={4}
+                      placeholder="Provide an example answer that will be used as a reference for grading..."
+                    />
+                  </FormControl>
+                )}
               </CardContent>
             </Card>
           ))}

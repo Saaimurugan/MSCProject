@@ -20,6 +20,8 @@ export const templatesAPI = {
   },
   getTemplateById: (templateId) => api.get(`/templates/${templateId}`),
   createTemplate: (templateData) => api.post('/templates', templateData),
+  updateTemplate: (templateId, templateData) => api.put(`/templates/${templateId}`, templateData),
+  deleteTemplate: (templateId) => api.delete(`/templates/${templateId}`),
 };
 
 // Quiz API calls

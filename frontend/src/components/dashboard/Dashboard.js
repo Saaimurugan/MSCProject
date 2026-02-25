@@ -20,12 +20,21 @@ import {
   Alert,
   Fab,
   Tooltip,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  Snackbar,
 } from '@mui/material';
 import {
   Quiz,
   Add,
   FilterList,
   School,
+  Edit,
+  Delete as DeleteIcon,
 } from '@mui/icons-material';
 import { templatesAPI } from '../../services/api';
 
@@ -35,6 +44,11 @@ const Dashboard = () => {
   const [error, setError] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('');
   const [selectedCourse, setCourse] = useState('');
+  const [availableSubjects, setAvailableSubjects] = useState([]);
+  const [availableCourses, setAvailableCourses] = useState([]);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [templateToDelete, setTemplateToDelete] = useState(null);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -64,6 +78,13 @@ const Dashboard = () => {
       }
       
       setTemplates(templatesData);
+      
+      // Extract unique subjects and courses from templates
+      const subjects = [...new Set(templatesData.map(t => t.subject).filter(Boolean))].sort();
+      const courses = [...new Set(templatesData.map(t => t.course).filter(Boolean))].sort();
+      
+      setAvailableSubjects(subjects);
+      setAvailableCourses(courses);
       setError('');
     } catch (error) {
       console.error('Templates error:', error);
@@ -82,9 +103,53 @@ const Dashboard = () => {
     navigate('/template/create');
   };
 
-  // Group templates by subject and course
+  const handleEditTemplate = (e, templateId) => {
+    e.stopPropagation(); // Prevent card click
+    navigate(`/template/edit/${templateId}`);
+  };
+
+  const handleDeleteClick = (e, template) => {
+    e.stopPropagation(); // Prevent card click
+    setTemplateToDelete(template);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!templateToDelete) return;
+
+    try {
+      await templatesAPI.deleteTemplate(templateToDelete.template_id);
+      setSnackbar({
+        open: true,
+        message: 'Template deleted successfully',
+        severity: 'success',
+      });
+      setDeleteDialogOpen(false);
+      setTemplateToDelete(null);
+      // Reload templates
+      loadTemplates();
+    } catch (error) {
+      console.error('Delete error:', error);
+      setSnackbar({
+        open: true,
+        message: 'Failed to delete template',
+        severity: 'error',
+      });
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteDialogOpen(false);
+    setTemplateToDelete(null);
+  };
+
+  const handleSnackbarClose = () => {
+    setSnackbar({ ...snackbar, open: false });
+  };
+
+  // Group templates by course and subject
   const groupedTemplates = Array.isArray(templates) ? templates.reduce((acc, template) => {
-    const key = `${template.subject} - ${template.course}`;
+    const key = `${template.course} - ${template.subject}`;
     if (!acc[key]) {
       acc[key] = [];
     }
@@ -98,7 +163,7 @@ const Dashboard = () => {
         <Toolbar>
           <School sx={{ mr: 2 }} />
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Quiz Application
+            AI Assessment
           </Typography>
           
           <Button 
@@ -115,7 +180,7 @@ const Dashboard = () => {
         {/* Welcome Section */}
         <Box mb={4}>
           <Typography variant="h4" gutterBottom>
-            Welcome to Quiz Application! 👋
+            Welcome to AI Assessment! 👋
           </Typography>
           <Typography variant="body1" color="text.secondary">
             Create quiz templates or take quizzes from available templates below.
@@ -132,22 +197,6 @@ const Dashboard = () => {
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6} md={4}>
                 <FormControl fullWidth>
-                  <InputLabel>Subject</InputLabel>
-                  <Select
-                    value={selectedSubject}
-                    label="Subject"
-                    onChange={(e) => setSelectedSubject(e.target.value)}
-                  >
-                    <MenuItem value="">All Subjects</MenuItem>
-                    <MenuItem value="Computer Science">Computer Science</MenuItem>
-                    <MenuItem value="Mathematics">Mathematics</MenuItem>
-                    <MenuItem value="Physics">Physics</MenuItem>
-                    <MenuItem value="Chemistry">Chemistry</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <FormControl fullWidth>
                   <InputLabel>Course</InputLabel>
                   <Select
                     value={selectedCourse}
@@ -155,10 +204,28 @@ const Dashboard = () => {
                     onChange={(e) => setCourse(e.target.value)}
                   >
                     <MenuItem value="">All Courses</MenuItem>
-                    <MenuItem value="MSC-101">MSC-101</MenuItem>
-                    <MenuItem value="MSC-102">MSC-102</MenuItem>
-                    <MenuItem value="MSC-201">MSC-201</MenuItem>
-                    <MenuItem value="MSC-202">MSC-202</MenuItem>
+                    {availableCourses.map((course) => (
+                      <MenuItem key={course} value={course}>
+                        {course}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={6} md={4}>
+                <FormControl fullWidth>
+                  <InputLabel>Subject</InputLabel>
+                  <Select
+                    value={selectedSubject}
+                    label="Subject"
+                    onChange={(e) => setSelectedSubject(e.target.value)}
+                  >
+                    <MenuItem value="">All Subjects</MenuItem>
+                    {availableSubjects.map((subject) => (
+                      <MenuItem key={subject} value={subject}>
+                        {subject}
+                      </MenuItem>
+                    ))}
                   </Select>
                 </FormControl>
               </Grid>
@@ -191,10 +258,10 @@ const Dashboard = () => {
                 </CardContent>
               </Card>
             ) : (
-              Object.entries(groupedTemplates).map(([subjectCourse, templateList]) => (
-                <Box key={subjectCourse} mb={4}>
+              Object.entries(groupedTemplates).map(([courseSubject, templateList]) => (
+                <Box key={courseSubject} mb={4}>
                   <Typography variant="h5" gutterBottom sx={{ mb: 2 }}>
-                    {subjectCourse}
+                    {courseSubject}
                   </Typography>
                   <Grid container spacing={3}>
                     {templateList.map((template) => (
@@ -203,6 +270,8 @@ const Dashboard = () => {
                           elevation={0}
                           sx={{ 
                             height: '100%',
+                            display: 'flex',
+                            flexDirection: 'column',
                             cursor: 'pointer',
                             transition: 'all 0.3s ease',
                             '&:hover': {
@@ -213,9 +282,31 @@ const Dashboard = () => {
                           onClick={() => handleTemplateClick(template.template_id)}
                         >
                           <CardContent sx={{ flexGrow: 1 }}>
-                            <Typography variant="h6" gutterBottom>
-                              {template.title}
-                            </Typography>
+                            <Box display="flex" justifyContent="space-between" alignItems="start" mb={1}>
+                              <Typography variant="h6" gutterBottom sx={{ flexGrow: 1, pr: 1 }}>
+                                {template.title}
+                              </Typography>
+                              <Box display="flex" gap={0.5}>
+                                <Tooltip title="Edit Template">
+                                  <IconButton
+                                    size="small"
+                                    color="primary"
+                                    onClick={(e) => handleEditTemplate(e, template.template_id)}
+                                  >
+                                    <Edit fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                                <Tooltip title="Delete Template">
+                                  <IconButton
+                                    size="small"
+                                    color="error"
+                                    onClick={(e) => handleDeleteClick(e, template)}
+                                  >
+                                    <DeleteIcon fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                              </Box>
+                            </Box>
                             <Box display="flex" alignItems="center" gap={1} mb={2}>
                               <Chip 
                                 label={`${template.question_count} questions`}
@@ -263,6 +354,40 @@ const Dashboard = () => {
           <Add />
         </Fab>
       </Tooltip>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={handleDeleteCancel}
+      >
+        <DialogTitle>Delete Template</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to delete the template "{templateToDelete?.title}"?
+            This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleDeleteCancel} color="primary">
+            Cancel
+          </Button>
+          <Button onClick={handleDeleteConfirm} color="error" variant="contained">
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert onClose={handleSnackbarClose} severity={snackbar.severity} sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

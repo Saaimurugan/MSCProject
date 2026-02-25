@@ -1,0 +1,289 @@
+================================================================================
+MSC EVALUATE - ARCHITECTURE DIAGRAM
+================================================================================
+
+DEPLOYMENT FLOW
+================================================================================
+
+  Developer Machine                    AWS Cloud (ap-south-1)
+  ┌─────────────┐                     ┌──────────────────────────────────┐
+  │             │                     │                                  │
+  │  deploy.ps1 │────────────────────▶│  CloudFormation Stack            │
+  │             │                     │  (msc-evaluate-stack-dev)        │
+  └─────────────┘                     │                                  │
+                                      │  Creates:                        │
+                                      │  • S3 Bucket                     │
+                                      │  • Lambda Functions (3)          │
+                                      │  • API Gateway                   │
+                                      │  • DynamoDB Tables (2)           │
+                                      │  • IAM Roles                     │
+                                      │                                  │
+                                      └──────────────────────────────────┘
+
+================================================================================
+RUNTIME ARCHITECTURE
+================================================================================
+
+  End User                Frontend              Backend              Database
+  ┌────────┐             ┌─────────┐          ┌─────────┐          ┌─────────┐
+  │        │             │         │          │         │          │         │
+  │ Browser│────────────▶│   S3    │          │  Lambda │          │DynamoDB │
+  │        │   HTTP      │ Static  │          │Functions│          │ Tables  │
+  │        │             │ Website │          │         │          │         │
+  └────────┘             └─────────┘          └─────────┘          └─────────┘
+      │                                             ▲                    ▲
+      │                                             │                    │
+      │                  ┌─────────────────────────┘                    │
+      │                  │                                               │
+      └─────────────────▶│  API Gateway                                 │
+           HTTPS/REST    │  (REST API)                                  │
+                         │  • CORS: *                                   │
+                         │  • Regional                                  │
+                         │                                               │
+                         └───────────────────────────────────────────────┘
+
+================================================================================
+DETAILED COMPONENT VIEW
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                                                                             │
+│  ┌───────────────────────────────────────────────────────────────────────┐ │
+│  │                         FRONTEND LAYER (S3)                           │ │
+│  ├───────────────────────────────────────────────────────────────────────┤ │
+│  │                                                                       │ │
+│  │  Bucket: msc-evaluate-frontend-dev                                   │ │
+│  │  URL: http://msc-evaluate-frontend-dev.s3-website.ap-south-1...      │ │
+│  │                                                                       │ │
+│  │  Contents:                                                            │ │
+│  │  • index.html                                                         │ │
+│  │  • static/js/*.js (React app)                                        │ │
+│  │  • static/css/*.css                                                   │ │
+│  │                                                                       │ │
+│  │  Features:                                                            │ │
+│  │  ✓ Static website hosting enabled                                    │ │
+│  │  ✓ Public read access                                                │ │
+│  │  ✓ CORS configured                                                   │ │
+│  │  ✓ Cache headers optimized                                           │ │
+│  │                                                                       │ │
+│  └───────────────────────────────────────────────────────────────────────┘ │
+│                                                                             │
+│  ┌───────────────────────────────────────────────────────────────────────┐ │
+│  │                      API GATEWAY LAYER                                │ │
+│  ├───────────────────────────────────────────────────────────────────────┤ │
+│  │                                                                       │ │
+│  │  API: msc-evaluate-api-dev                                           │ │
+│  │  URL: https://{api-id}.execute-api.ap-south-1.amazonaws.com/dev     │ │
+│  │                                                                       │ │
+│  │  Endpoints:                                                           │ │
+│  │  ┌─────────────────────────────────────────────────────────────┐    │ │
+│  │  │ POST   /templates              → TemplateApiFunction        │    │ │
+│  │  │ GET    /templates              → TemplateApiFunction        │    │ │
+│  │  │ GET    /templates/{id}/quiz    → TakeQuizFunction           │    │ │
+│  │  │ POST   /submit                 → SubmitQuizFunction         │    │ │
+│  │  │ OPTIONS (all)                  → CORS Preflight             │    │ │
+│  │  └─────────────────────────────────────────────────────────────┘    │ │
+│  │                                                                       │ │
+│  │  CORS Configuration:                                                  │ │
+│  │  • Access-Control-Allow-Origin: *                                    │ │
+│  │  • Access-Control-Allow-Methods: GET,POST,PUT,DELETE,OPTIONS         │ │
+│  │  • Access-Control-Allow-Headers: Content-Type,Authorization,...      │ │
+│  │                                                                       │ │
+│  └───────────────────────────────────────────────────────────────────────┘ │
+│                                                                             │
+│  ┌───────────────────────────────────────────────────────────────────────┐ │
+│  │                      LAMBDA FUNCTIONS LAYER                           │ │
+│  ├───────────────────────────────────────────────────────────────────────┤ │
+│  │                                                                       │ │
+│  │  ┌─────────────────────────────────────────────────────────────┐    │ │
+│  │  │ 1. Template API Function                                    │    │ │
+│  │  │    Name: msc-evaluate-template-api-dev                      │    │ │
+│  │  │    Runtime: Python 3.11                                     │    │ │
+│  │  │    Handler: template_api.lambda_handler                     │    │ │
+│  │  │    Memory: 256 MB                                           │    │ │
+│  │  │    Timeout: 30 seconds                                      │    │ │
+│  │  │                                                              │    │ │
+│  │  │    Functions:                                                │    │ │
+│  │  │    • create_template() - POST /templates                    │    │ │
+│  │  │    • get_templates() - GET /templates                       │    │ │
+│  │  │    • get_template_by_id() - GET /templates/{id}             │    │ │
+│  │  └─────────────────────────────────────────────────────────────┘    │ │
+│  │                                                                       │ │
+│  │  ┌─────────────────────────────────────────────────────────────┐    │ │
+│  │  │ 2. Take Quiz Function                                       │    │ │
+│  │  │    Name: msc-evaluate-take-quiz-dev                         │    │ │
+│  │  │    Runtime: Python 3.11                                     │    │ │
+│  │  │    Handler: take_quiz.lambda_handler                        │    │ │
+│  │  │    Memory: 256 MB                                           │    │ │
+│  │  │    Timeout: 30 seconds                                      │    │ │
+│  │  │                                                              │    │ │
+│  │  │    Functions:                                                │    │ │
+│  │  │    • Get quiz without correct answers                       │    │ │
+│  │  │    • Returns questions and options only                     │    │ │
+│  │  └─────────────────────────────────────────────────────────────┘    │ │
+│  │                                                                       │ │
+│  │  ┌─────────────────────────────────────────────────────────────┐    │ │
+│  │  │ 3. Submit Quiz Function                                     │    │ │
+│  │  │    Name: msc-evaluate-submit-quiz-dev                       │    │ │
+│  │  │    Runtime: Python 3.11                                     │    │ │
+│  │  │    Handler: submit_quiz.lambda_handler                      │    │ │
+│  │  │    Memory: 256 MB                                           │    │ │
+│  │  │    Timeout: 30 seconds                                      │    │ │
+│  │  │                                                              │    │ │
+│  │  │    Functions:                                                │    │ │
+│  │  │    • Evaluate quiz answers                                  │    │ │
+│  │  │    • Calculate score                                        │    │ │
+│  │  │    • Store results in DynamoDB                              │    │ │
+│  │  └─────────────────────────────────────────────────────────────┘    │ │
+│  │                                                                       │ │
+│  │  IAM Role: msc-evaluate-lambda-role-dev                              │ │
+│  │  Permissions:                                                         │ │
+│  │  • CloudWatch Logs (write)                                           │ │
+│  │  • DynamoDB (read/write on Templates and QuizResults tables)         │ │
+│  │                                                                       │ │
+│  └───────────────────────────────────────────────────────────────────────┘ │
+│                                                                             │
+│  ┌───────────────────────────────────────────────────────────────────────┐ │
+│  │                      DATABASE LAYER (DynamoDB)                        │ │
+│  ├───────────────────────────────────────────────────────────────────────┤ │
+│  │                                                                       │ │
+│  │  ┌─────────────────────────────────────────────────────────────┐    │ │
+│  │  │ Table 1: Templates                                          │    │ │
+│  │  │ Name: msc-evaluate-templates-dev                            │    │ │
+│  │  │                                                              │    │ │
+│  │  │ Primary Key: template_id (String)                           │    │ │
+│  │  │                                                              │    │ │
+│  │  │ Attributes:                                                  │    │ │
+│  │  │ • template_id (String) - UUID                               │    │ │
+│  │  │ • title (String)                                            │    │ │
+│  │  │ • subject (String)                                          │    │ │
+│  │  │ • course (String)                                           │    │ │
+│  │  │ • questions (List)                                          │    │ │
+│  │  │   - question_text (String)                                  │    │ │
+│  │  │   - options (List)                                          │    │ │
+│  │  │   - correct_answer (Number)                                 │    │ │
+│  │  │ • is_active (Boolean)                                       │    │ │
+│  │  │ • created_at (String - ISO timestamp)                       │    │ │
+│  │  │ • updated_at (String - ISO timestamp)                       │    │ │
+│  │  │                                                              │    │ │
+│  │  │ Billing: Pay-per-request                                    │    │ │
+│  │  └─────────────────────────────────────────────────────────────┘    │ │
+│  │                                                                       │ │
+│  │  ┌─────────────────────────────────────────────────────────────┐    │ │
+│  │  │ Table 2: Quiz Results                                       │    │ │
+│  │  │ Name: msc-evaluate-quiz-results-dev                         │    │ │
+│  │  │                                                              │    │ │
+│  │  │ Primary Key: result_id (String)                             │    │ │
+│  │  │ GSI: session_id-index                                       │    │ │
+│  │  │                                                              │    │ │
+│  │  │ Attributes:                                                  │    │ │
+│  │  │ • result_id (String) - UUID                                 │    │ │
+│  │  │ • session_id (String) - UUID                                │    │ │
+│  │  │ • template_id (String)                                      │    │ │
+│  │  │ • answers (List)                                            │    │ │
+│  │  │   - question_index (Number)                                 │    │ │
+│  │  │   - selected_answer (Number)                                │    │ │
+│  │  │ • total_score (Number) - Percentage                         │    │ │
+│  │  │ • correct_count (Number)                                    │    │ │
+│  │  │ • total_questions (Number)                                  │    │ │
+│  │  │ • completed_at (String - ISO timestamp)                     │    │ │
+│  │  │ • created_at (String - ISO timestamp)                       │    │ │
+│  │  │                                                              │    │ │
+│  │  │ Billing: Pay-per-request                                    │    │ │
+│  │  └─────────────────────────────────────────────────────────────┘    │ │
+│  │                                                                       │ │
+│  └───────────────────────────────────────────────────────────────────────┘ │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+================================================================================
+REQUEST FLOW EXAMPLES
+================================================================================
+
+1. CREATE QUIZ TEMPLATE
+   ┌──────┐  POST /templates   ┌────────────┐  Invoke  ┌──────────┐  Write  ┌─────────┐
+   │Client│───────────────────▶│API Gateway │─────────▶│ Lambda   │────────▶│DynamoDB │
+   └──────┘                    └────────────┘          │Template  │         │Templates│
+      ▲                                                 │   API    │         └─────────┘
+      │                                                 └──────────┘              │
+      │                                                      │                    │
+      └──────────────────────────────────────────────────────┴────────────────────┘
+                              Response: template_id
+
+2. TAKE QUIZ
+   ┌──────┐  GET /templates/{id}/quiz  ┌────────────┐  Invoke  ┌──────────┐  Read  ┌─────────┐
+   │Client│───────────────────────────▶│API Gateway │─────────▶│ Lambda   │───────▶│DynamoDB │
+   └──────┘                            └────────────┘          │Take Quiz │        │Templates│
+      ▲                                                         └──────────┘        └─────────┘
+      │                                                              │                   │
+      └──────────────────────────────────────────────────────────────┴───────────────────┘
+                    Response: quiz (without correct answers)
+
+3. SUBMIT QUIZ
+   ┌──────┐  POST /submit   ┌────────────┐  Invoke  ┌──────────┐  Read/Write  ┌─────────┐
+   │Client│────────────────▶│API Gateway │─────────▶│ Lambda   │─────────────▶│DynamoDB │
+   └──────┘                 └────────────┘          │Submit    │              │Templates│
+      ▲                                              │  Quiz    │              │ Results │
+      │                                              └──────────┘              └─────────┘
+      │                                                   │                         │
+      └───────────────────────────────────────────────────┴─────────────────────────┘
+                    Response: score, correct_count, detailed_results
+
+================================================================================
+SECURITY MODEL
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                                                                             │
+│  Internet                                                                   │
+│     │                                                                        │
+│     ▼                                                                        │
+│  ┌──────────────────────────────────────────────────────────────┐          │
+│  │ S3 Bucket (Public Read)                                      │          │
+│  │ • Bucket Policy: Allow s3:GetObject for *                    │          │
+│  │ • Static Website Hosting: Enabled                            │          │
+│  └──────────────────────────────────────────────────────────────┘          │
+│     │                                                                        │
+│     ▼                                                                        │
+│  ┌──────────────────────────────────────────────────────────────┐          │
+│  │ API Gateway (Public)                                         │          │
+│  │ • Authorization: NONE                                        │          │
+│  │ • CORS: Access-Control-Allow-Origin: *                       │          │
+│  │ • Rate Limiting: Default AWS limits                          │          │
+│  └──────────────────────────────────────────────────────────────┘          │
+│     │                                                                        │
+│     ▼                                                                        │
+│  ┌──────────────────────────────────────────────────────────────┐          │
+│  │ Lambda Functions (Private)                                   │          │
+│  │ • Execution Role: msc-evaluate-lambda-role-dev               │          │
+│  │ • VPC: None (public subnet)                                  │          │
+│  │ • Resource Policy: Allow API Gateway invoke                  │          │
+│  └──────────────────────────────────────────────────────────────┘          │
+│     │                                                                        │
+│     ▼                                                                        │
+│  ┌──────────────────────────────────────────────────────────────┐          │
+│  │ DynamoDB Tables (Private)                                    │          │
+│  │ • Access: IAM only                                           │          │
+│  │ • Allowed: Lambda execution role                             │          │
+│  │ • Encryption: AWS managed keys                               │          │
+│  └──────────────────────────────────────────────────────────────┘          │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+================================================================================
+DEPLOYMENT REGIONS
+================================================================================
+
+Primary Region: ap-south-1 (Mumbai, India)
+
+All resources are deployed in this single region:
+• S3 Bucket
+• Lambda Functions
+• API Gateway
+• DynamoDB Tables
+• CloudWatch Logs
+
+For multi-region deployment, modify the CloudFormation template and
+deployment scripts to target additional regions.
+
+================================================================================
