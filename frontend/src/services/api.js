@@ -26,7 +26,7 @@ export const templatesAPI = {
 
 // Quiz API calls
 export const quizAPI = {
-  submitQuiz: (quizData) => api.post('/quiz/submit', quizData),
+  submitQuiz: (quizData) => api.post('/submit', quizData),
 };
 
 export default api;

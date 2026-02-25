@@ -113,6 +113,24 @@ Resources:
                   - !GetAtt TemplatesTable.Arn
                   - !GetAtt QuizResultsTable.Arn
                   - !Sub '${QuizResultsTable.Arn}/index/*'
+        - PolicyName: LambdaInvokeAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'lambda:InvokeFunction'
+                Resource:
+                  - !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:msc-evaluate-function-${Environment}'
+        - PolicyName: BedrockAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'bedrock:InvokeModel'
+                  - 'bedrock:InvokeModelWithResponseStream'
+                Resource: '*'
 
   # Lambda Functions
   TemplateApiFunction:
@@ -159,6 +177,21 @@ Resources:
               return {'statusCode': 200, 'body': 'Placeholder'}
       Timeout: 30
       MemorySize: 256
+
+  MSCEvaluateFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub 'msc-evaluate-function-${Environment}'
+      Runtime: python3.11
+      Handler: lambda_function.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          # Placeholder - will be updated by deployment script
+          def lambda_handler(event, context):
+              return {'statusCode': 200, 'body': 'Placeholder'}
+      Timeout: 300
+      MemorySize: 512
 
   # API Gateway REST API
   ApiGateway:

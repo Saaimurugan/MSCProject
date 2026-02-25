@@ -538,3 +538,214 @@
     width: 100%;
   }
 }
+
+/* Elaborate Answer Styles */
+.elaborate-answer {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.elaborate-answer textarea {
+  width: 100%;
+  min-height: 150px;
+  padding: 15px;
+  border: 2px solid #e0e0e0;
+  border-radius: 10px;
+  font-size: 16px;
+  font-family: inherit;
+  resize: vertical;
+  transition: border-color 0.3s;
+  margin-bottom: 15px;
+}
+
+.elaborate-answer textarea:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.elaborate-answer textarea:disabled {
+  background: #f5f5f5;
+  cursor: not-allowed;
+}
+
+/* PDF Upload Styles */
+.pdf-upload-section {
+  margin-top: 20px;
+}
+
+.upload-divider {
+  text-align: center;
+  margin: 20px 0;
+  position: relative;
+}
+
+.upload-divider::before,
+.upload-divider::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 40%;
+  height: 1px;
+  background: #e0e0e0;
+}
+
+.upload-divider::before {
+  left: 0;
+}
+
+.upload-divider::after {
+  right: 0;
+}
+
+.upload-divider span {
+  background: white;
+  padding: 0 15px;
+  color: #999;
+  font-weight: 500;
+}
+
+.pdf-upload-container {
+  margin-top: 15px;
+}
+
+.pdf-upload-input {
+  text-align: center;
+}
+
+.btn-upload {
+  display: inline-block;
+  background: linear-gradient(90deg, #11998e, #38ef7d);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+  transition: transform 0.2s, box-shadow 0.2s;
+  border: none;
+}
+
+.btn-upload:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 20px rgba(17,153,142,0.4);
+}
+
+.upload-hint {
+  margin-top: 8px;
+  color: #999;
+  font-size: 14px;
+}
+
+.pdf-uploaded {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: #f0fff4;
+  border: 2px solid #27ae60;
+  border-radius: 10px;
+  padding: 15px;
+}
+
+.pdf-icon {
+  font-size: 24px;
+}
+
+.pdf-name {
+  flex: 1;
+  color: #333;
+  font-weight: 500;
+  word-break: break-word;
+}
+
+.btn-remove-pdf {
+  background: #e74c3c;
+  color: white;
+  border: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.btn-remove-pdf:hover {
+  background: #c0392b;
+}
+
+.example-answer-hint {
+  margin-top: 20px;
+  padding: 15px;
+  background: #f8f9fa;
+  border-left: 4px solid #667eea;
+  border-radius: 8px;
+}
+
+.example-answer-hint strong {
+  color: #667eea;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.example-answer-hint p {
+  color: #666;
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* Elaborate Answer Results Styles */
+.result-item.elaborate {
+  border-color: #667eea;
+  background: #f8f9ff;
+}
+
+.result-badge.score {
+  background: #667eea;
+  color: white;
+}
+
+.answer-text {
+  padding: 12px;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  margin-top: 8px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.example-answer {
+  margin-top: 15px;
+}
+
+.evaluation-section,
+.justification-section,
+.suggestions-section {
+  margin-top: 15px;
+  padding: 15px;
+  background: white;
+  border-radius: 8px;
+  border-left: 4px solid #667eea;
+}
+
+.evaluation-text,
+.justification-text,
+.suggestions-text {
+  margin-top: 8px;
+  color: #555;
+  line-height: 1.6;
+}
+
+.justification-section {
+  border-left-color: #3498db;
+}
+
+.suggestions-section {
+  border-left-color: #27ae60;
+}

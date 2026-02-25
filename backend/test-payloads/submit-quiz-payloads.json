@@ -1,60 +1,44 @@
 {
-  "SUBMIT_QUIZ_SUCCESS_WITH_SESSION": {
-    "description": "POST /quiz/submit - Submit quiz with session_id (replace TEMPLATE_ID with actual ID)",
+  "SUBMIT_QUIZ_TEXT_ANSWER": {
+    "description": "POST /quiz/submit - Submit quiz with text answers (elaborate questions)",
     "event": {
       "httpMethod": "POST",
       "path": "/quiz/submit",
-      "body": "{\"template_id\":\"TEMPLATE_ID\",\"session_id\":\"test-session-123\",\"answers\":[{\"question_index\":0,\"selected_answer\":1},{\"question_index\":1,\"selected_answer\":1},{\"question_index\":2,\"selected_answer\":2}]}"
+      "body": "{\"template_id\":\"TEMPLATE_ID\",\"session_id\":\"test-session-123\",\"answers\":[{\"question_index\":0,\"answer_text\":\"This is my detailed answer to question 1.\",\"pdf_data\":null,\"pdf_filename\":null},{\"question_index\":1,\"answer_text\":\"This is my answer to question 2 with more details.\",\"pdf_data\":null,\"pdf_filename\":null}]}"
     },
     "expected_response": {
       "statusCode": 200,
-      "body_contains": ["result_id", "session_id", "total_score", "correct_count", "total_questions", "detailed_results"]
+      "body_contains": ["result_id", "session_id", "average_score", "total_questions", "evaluations"]
     },
-    "notes": "Assumes template has 3 questions. Adjust answers array based on actual template."
+    "notes": "For elaborate answer questions. Each answer is evaluated by MSC_Evaluate Lambda using Bedrock."
   },
 
-  "SUBMIT_QUIZ_SUCCESS_WITHOUT_SESSION": {
-    "description": "POST /quiz/submit - Submit quiz without session_id (auto-generated)",
+  "SUBMIT_QUIZ_PDF_ANSWER": {
+    "description": "POST /quiz/submit - Submit quiz with PDF answer",
     "event": {
       "httpMethod": "POST",
       "path": "/quiz/submit",
-      "body": "{\"template_id\":\"TEMPLATE_ID\",\"answers\":[{\"question_index\":0,\"selected_answer\":1},{\"question_index\":1,\"selected_answer\":1},{\"question_index\":2,\"selected_answer\":2}]}"
+      "body": "{\"template_id\":\"TEMPLATE_ID\",\"session_id\":\"pdf-session-123\",\"answers\":[{\"question_index\":0,\"answer_text\":\"\",\"pdf_data\":\"BASE64_ENCODED_PDF_DATA\",\"pdf_filename\":\"answer.pdf\"}]}"
     },
     "expected_response": {
       "statusCode": 200,
-      "body_contains": ["result_id", "session_id", "total_score"]
+      "body_contains": ["result_id", "evaluations"]
     },
-    "notes": "session_id will be auto-generated"
+    "notes": "PDF is base64 encoded. Text is extracted from PDF and evaluated."
   },
 
-  "SUBMIT_QUIZ_PERFECT_SCORE": {
-    "description": "POST /quiz/submit - Submit quiz with all correct answers",
+  "SUBMIT_QUIZ_MIXED_ANSWERS": {
+    "description": "POST /quiz/submit - Submit quiz with both text and PDF answers",
     "event": {
       "httpMethod": "POST",
       "path": "/quiz/submit",
-      "body": "{\"template_id\":\"TEMPLATE_ID\",\"session_id\":\"perfect-score-session\",\"answers\":[{\"question_index\":0,\"selected_answer\":1},{\"question_index\":1,\"selected_answer\":1},{\"question_index\":2,\"selected_answer\":2}]}"
+      "body": "{\"template_id\":\"TEMPLATE_ID\",\"answers\":[{\"question_index\":0,\"answer_text\":\"Text answer\",\"pdf_data\":null,\"pdf_filename\":null},{\"question_index\":1,\"answer_text\":\"\",\"pdf_data\":\"BASE64_PDF\",\"pdf_filename\":\"q2.pdf\"}]}"
     },
     "expected_response": {
       "statusCode": 200,
-      "body_contains": ["total_score"],
-      "expected_score": 100
+      "body_contains": ["average_score", "evaluations"]
     },
-    "notes": "Adjust selected_answer values to match correct answers in your template"
-  },
-
-  "SUBMIT_QUIZ_ZERO_SCORE": {
-    "description": "POST /quiz/submit - Submit quiz with all wrong answers",
-    "event": {
-      "httpMethod": "POST",
-      "path": "/quiz/submit",
-      "body": "{\"template_id\":\"TEMPLATE_ID\",\"session_id\":\"zero-score-session\",\"answers\":[{\"question_index\":0,\"selected_answer\":0},{\"question_index\":1,\"selected_answer\":0},{\"question_index\":2,\"selected_answer\":0}]}"
-    },
-    "expected_response": {
-      "statusCode": 200,
-      "body_contains": ["total_score"],
-      "expected_score": 0
-    },
-    "notes": "Assumes all correct answers are NOT index 0"
+    "notes": "session_id will be auto-generated if not provided"
   },
 
   "SUBMIT_QUIZ_MISSING_TEMPLATE_ID": {

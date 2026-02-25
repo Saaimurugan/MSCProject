@@ -1,6 +1,28 @@
 import boto3
 import json
 from datetime import datetime
+import base64
+import PyPDF2
+from io import BytesIO
+
+def extract_text_from_pdf(pdf_base64):
+    """Extract text from base64 encoded PDF"""
+    try:
+        # Decode base64 to bytes
+        pdf_bytes = base64.b64decode(pdf_base64)
+        
+        # Create a PDF reader object
+        pdf_file = BytesIO(pdf_bytes)
+        pdf_reader = PyPDF2.PdfReader(pdf_file)
+        
+        # Extract text from all pages
+        text = ""
+        for page in pdf_reader.pages:
+            text += page.extract_text() + "\n"
+        
+        return text.strip()
+    except Exception as e:
+        raise Exception(f"Failed to extract text from PDF: {str(e)}")
 
 def lambda_handler(event, context):
     try:
@@ -11,7 +33,25 @@ def lambda_handler(event, context):
 
         # Extract data from event
         user_answer = event.get("user_answer", "")
+        pdf_data = event.get("pdf_data")
         example_answer = event.get("example_answer", "")
+
+        # If PDF is provided, extract text from it
+        if pdf_data:
+            try:
+                user_answer = extract_text_from_pdf(pdf_data)
+            except Exception as e:
+                return {
+                    'statusCode': 400,
+                    'body': json.dumps({'error': f'PDF processing failed: {str(e)}'})
+                }
+
+        # Validate that we have an answer
+        if not user_answer:
+            return {
+                'statusCode': 400,
+                'body': json.dumps({'error': 'No answer provided (text or PDF)'})
+            }
 
         # Construct the prompt to generate HTML JD
         prompt = f'''

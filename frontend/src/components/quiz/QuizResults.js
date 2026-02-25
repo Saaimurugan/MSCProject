@@ -18,8 +18,8 @@ const QuizResults = () => {
     );
   }
 
-  const { total_score, correct_count, total_questions, detailed_results } = results;
-  const percentage = Math.round(total_score);
+  const { average_score, total_questions, evaluations } = results;
+  const percentage = Math.round(average_score);
 
   // Determine performance level
   let performanceLevel = '';
@@ -50,22 +50,21 @@ const QuizResults = () => {
         <div className="score-percentage">{percentage}%</div>
         <div className="score-label">{performanceLevel}</div>
         <div className="score-details">
-          {correct_count} out of {total_questions} questions correct
+          Average Score: {average_score.toFixed(2)} / 100
         </div>
       </div>
 
       <div className="detailed-results">
         <h3>Detailed Feedback</h3>
-        {detailed_results.map((result, index) => {
-          const question = template.questions[result.question_index];
-          const isCorrect = result.is_correct;
+        {evaluations.map((evaluation, index) => {
+          const question = template.questions[evaluation.question_index];
           
           return (
-            <div key={index} className={`result-item ${isCorrect ? 'correct' : 'incorrect'}`}>
+            <div key={index} className="result-item elaborate">
               <div className="result-header">
-                <span className="question-number">Question {result.question_index + 1}</span>
-                <span className={`result-badge ${isCorrect ? 'correct' : 'incorrect'}`}>
-                  {isCorrect ? '✓ Correct' : '✗ Incorrect'}
+                <span className="question-number">Question {evaluation.question_index + 1}</span>
+                <span className="result-badge score">
+                  Score: {evaluation.score}
                 </span>
               </div>
               
@@ -74,17 +73,42 @@ const QuizResults = () => {
               <div className="answer-review">
                 <div className="your-answer">
                   <strong>Your answer:</strong>
-                  <span className={isCorrect ? 'correct-text' : 'incorrect-text'}>
-                    {question.options[result.selected_answer]}
-                  </span>
+                  <div className="answer-text">
+                    {evaluation.user_answer}
+                  </div>
                 </div>
                 
-                {!isCorrect && (
-                  <div className="correct-answer">
-                    <strong>Correct answer:</strong>
-                    <span className="correct-text">
-                      {question.options[result.correct_answer]}
-                    </span>
+                {question.example_answer && (
+                  <div className="example-answer">
+                    <strong>Example answer:</strong>
+                    <div className="answer-text">
+                      {question.example_answer}
+                    </div>
+                  </div>
+                )}
+                
+                <div className="evaluation-section">
+                  <strong>Evaluation:</strong>
+                  <div className="evaluation-text">
+                    {evaluation.evaluation}
+                  </div>
+                </div>
+                
+                {evaluation.justification && (
+                  <div className="justification-section">
+                    <strong>Justification:</strong>
+                    <div className="justification-text">
+                      {evaluation.justification}
+                    </div>
+                  </div>
+                )}
+                
+                {evaluation.suggessions && (
+                  <div className="suggestions-section">
+                    <strong>Suggestions:</strong>
+                    <div className="suggestions-text">
+                      {evaluation.suggessions}
+                    </div>
                   </div>
                 )}
               </div>

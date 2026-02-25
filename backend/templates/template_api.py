@@ -123,35 +123,12 @@ def create_template(event, context):
         # Validate questions format
         for i, question in enumerate(questions):
             question_text = question.get('question_text', '').strip()
-            options = question.get('options', [])
-            correct_answer = question.get('correct_answer')
             
             if not question_text:
                 return {
                     'statusCode': 400,
                     'headers': get_cors_headers(),
                     'body': json.dumps({'error': 'Validation Error', 'message': f'Question {i+1} must have question_text'})
-                }
-            
-            if not options or len(options) < 2:
-                return {
-                    'statusCode': 400,
-                    'headers': get_cors_headers(),
-                    'body': json.dumps({'error': 'Validation Error', 'message': f'Question {i+1} must have at least 2 answer options'})
-                }
-            
-            if correct_answer is None:
-                return {
-                    'statusCode': 400,
-                    'headers': get_cors_headers(),
-                    'body': json.dumps({'error': 'Validation Error', 'message': f'Question {i+1} must have a correct answer designated'})
-                }
-            
-            if not isinstance(correct_answer, int) or correct_answer < 0 or correct_answer >= len(options):
-                return {
-                    'statusCode': 400,
-                    'headers': get_cors_headers(),
-                    'body': json.dumps({'error': 'Validation Error', 'message': f'Question {i+1} has invalid correct_answer index'})
                 }
         
         template_model = Template()

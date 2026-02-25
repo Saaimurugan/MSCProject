@@ -9,6 +9,7 @@ const QuizTaking = () => {
   const [template, setTemplate] = useState(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState([]);
+  const [pdfFiles, setPdfFiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -21,8 +22,9 @@ const QuizTaking = () => {
     try {
       const response = await templatesAPI.getTemplateById(templateId);
       setTemplate(response.data);
-      // Initialize answers array with null values
-      setAnswers(new Array(response.data.questions.length).fill(null));
+      // Initialize answers array with empty strings for elaborate questions
+      setAnswers(new Array(response.data.questions.length).fill(''));
+      setPdfFiles(new Array(response.data.questions.length).fill(null));
     } catch (error) {
       setError('Failed to load quiz');
     } finally {
@@ -30,10 +32,48 @@ const QuizTaking = () => {
     }
   };
 
-  const handleAnswerChange = (optionIndex) => {
+  const handleAnswerChange = (value) => {
     const newAnswers = [...answers];
-    newAnswers[currentQuestionIndex] = optionIndex;
+    newAnswers[currentQuestionIndex] = value;
     setAnswers(newAnswers);
+    // Clear PDF if text is entered
+    if (value) {
+      const newPdfFiles = [...pdfFiles];
+      newPdfFiles[currentQuestionIndex] = null;
+      setPdfFiles(newPdfFiles);
+    }
+  };
+
+  const handlePdfUpload = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      // Validate file type
+      if (file.type !== 'application/pdf') {
+        setError('Please upload a PDF file');
+        return;
+      }
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setError('PDF file size must be less than 5MB');
+        return;
+      }
+      
+      const newPdfFiles = [...pdfFiles];
+      newPdfFiles[currentQuestionIndex] = file;
+      setPdfFiles(newPdfFiles);
+      
+      // Clear text answer if PDF is uploaded
+      const newAnswers = [...answers];
+      newAnswers[currentQuestionIndex] = '';
+      setAnswers(newAnswers);
+      setError('');
+    }
+  };
+
+  const removePdf = () => {
+    const newPdfFiles = [...pdfFiles];
+    newPdfFiles[currentQuestionIndex] = null;
+    setPdfFiles(newPdfFiles);
   };
 
   const goToQuestion = (index) => {
@@ -53,22 +93,45 @@ const QuizTaking = () => {
   };
 
   const submitQuiz = async () => {
-    // Validate all questions are answered
-    const unansweredQuestions = answers.some(answer => answer === null);
+    // Validate all questions are answered (either text or PDF)
+    const unansweredQuestions = answers.some((answer, index) => 
+      !answer && !pdfFiles[index]
+    );
     if (unansweredQuestions) {
-      setError('Please answer all questions before submitting');
+      setError('Please answer all questions (text or PDF) before submitting');
       return;
     }
 
     setSubmitting(true);
     setError('');
     try {
+      // Convert PDFs to base64
+      const answersWithPdf = await Promise.all(
+        answers.map(async (answer, index) => {
+          const pdfFile = pdfFiles[index];
+          if (pdfFile) {
+            // Convert PDF to base64
+            const base64 = await fileToBase64(pdfFile);
+            return {
+              question_index: index,
+              answer_text: '',
+              pdf_data: base64,
+              pdf_filename: pdfFile.name
+            };
+          } else {
+            return {
+              question_index: index,
+              answer_text: answer,
+              pdf_data: null,
+              pdf_filename: null
+            };
+          }
+        })
+      );
+
       const quizData = {
         template_id: templateId,
-        answers: answers.map((selectedAnswer, index) => ({
-          question_index: index,
-          selected_answer: selectedAnswer
-        }))
+        answers: answersWithPdf
       };
 
       const response = await quizAPI.submitQuiz(quizData);
@@ -85,6 +148,15 @@ const QuizTaking = () => {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const fileToBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result.split(',')[1]);
+      reader.onerror = error => reject(error);
+    });
   };
 
   if (loading) {
@@ -132,7 +204,9 @@ const QuizTaking = () => {
         {template.questions.map((_, index) => (
           <button
             key={index}
-            className={`nav-dot ${index === currentQuestionIndex ? 'active' : ''} ${answers[index] !== null ? 'answered' : ''}`}
+            className={`nav-dot ${index === currentQuestionIndex ? 'active' : ''} ${
+              answers[index] || pdfFiles[index] ? 'answered' : ''
+            }`}
             onClick={() => goToQuestion(index)}
           >
             {index + 1}
@@ -145,20 +219,59 @@ const QuizTaking = () => {
       </div>
 
       <div className="answer-options">
-        {currentQuestion.options.map((option, index) => (
-          <div key={index} className="option-item">
-            <label>
-              <input
-                type="radio"
-                name={`question-${currentQuestionIndex}`}
-                value={index}
-                checked={answers[currentQuestionIndex] === index}
-                onChange={() => handleAnswerChange(index)}
-              />
-              <span className="option-text">{option}</span>
-            </label>
+        <div className="elaborate-answer">
+          <textarea
+            value={answers[currentQuestionIndex]}
+            onChange={(e) => handleAnswerChange(e.target.value)}
+            placeholder="Type your answer here..."
+            rows="8"
+            disabled={pdfFiles[currentQuestionIndex] !== null}
+          />
+          
+          <div className="pdf-upload-section">
+            <div className="upload-divider">
+              <span>OR</span>
+            </div>
+            
+            <div className="pdf-upload-container">
+              {pdfFiles[currentQuestionIndex] ? (
+                <div className="pdf-uploaded">
+                  <span className="pdf-icon">📄</span>
+                  <span className="pdf-name">{pdfFiles[currentQuestionIndex].name}</span>
+                  <button 
+                    type="button" 
+                    onClick={removePdf}
+                    className="btn-remove-pdf"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ) : (
+                <div className="pdf-upload-input">
+                  <label htmlFor={`pdf-upload-${currentQuestionIndex}`} className="btn-upload">
+                    📎 Upload PDF Answer
+                  </label>
+                  <input
+                    id={`pdf-upload-${currentQuestionIndex}`}
+                    type="file"
+                    accept="application/pdf"
+                    onChange={handlePdfUpload}
+                    style={{ display: 'none' }}
+                    disabled={answers[currentQuestionIndex] !== ''}
+                  />
+                  <p className="upload-hint">Max 5MB</p>
+                </div>
+              )}
+            </div>
           </div>
-        ))}
+
+          {currentQuestion.example_answer && (
+            <div className="example-answer-hint">
+              <strong>Example Answer:</strong>
+              <p>{currentQuestion.example_answer}</p>
+            </div>
+          )}
+        </div>
       </div>
 
       {error && <div className="error-message">{error}</div>}

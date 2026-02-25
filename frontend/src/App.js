@@ -9,6 +9,7 @@ import Dashboard from './components/dashboard/Dashboard';
 import QuizTaking from './components/quiz/QuizTaking';
 import QuizResults from './components/quiz/QuizResults';
 import TemplateCreator from './components/templates/TemplateCreator';
+import TemplateEditor from './components/templates/TemplateEditor';
 
 function App() {
   return (
@@ -19,7 +20,9 @@ function App() {
           <Routes>
             {/* Main Routes */}
             <Route path="/" element={<Dashboard />} />
+            <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/template/create" element={<TemplateCreator />} />
+            <Route path="/template/edit/:templateId" element={<TemplateEditor />} />
             <Route path="/quiz/:templateId" element={<QuizTaking />} />
             <Route path="/quiz/:templateId/results" element={<QuizResults />} />
             

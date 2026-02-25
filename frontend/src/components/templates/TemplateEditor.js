@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   Container,
   Typography,
@@ -26,9 +26,11 @@ import {
 } from '@mui/icons-material';
 import { templatesAPI } from '../../services/api';
 
-const TemplateCreator = () => {
+const TemplateEditor = () => {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
+  const { templateId } = useParams();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   
@@ -36,13 +38,7 @@ const TemplateCreator = () => {
   const [title, setTitle] = useState('');
   const [subject, setSubject] = useState('');
   const [course, setCourse] = useState('');
-  const [questions, setQuestions] = useState([
-    {
-      question_text: '',
-      question_type: 'elaborate',
-      example_answer: '',
-    },
-  ]);
+  const [questions, setQuestions] = useState([]);
 
   // Validation errors
   const [validationErrors, setValidationErrors] = useState({
@@ -51,6 +47,36 @@ const TemplateCreator = () => {
     course: '',
     questions: [],
   });
+
+  useEffect(() => {
+    loadTemplate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [templateId]);
+
+  const loadTemplate = async () => {
+    try {
+      setLoading(true);
+      const response = await templatesAPI.getTemplateById(templateId);
+      const template = response.data;
+      
+      setTitle(template.title);
+      setSubject(template.subject);
+      setCourse(template.course);
+      
+      // Convert questions to elaborate format (handle both old MCQ and new elaborate formats)
+      setQuestions(template.questions.map(q => ({
+        question_text: q.question_text,
+        question_type: 'elaborate',
+        example_answer: q.example_answer || '',
+      })));
+      setError('');
+    } catch (error) {
+      console.error('Load template error:', error);
+      setError('Failed to load template');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const validateForm = () => {
     const errors = {
@@ -61,25 +87,21 @@ const TemplateCreator = () => {
     };
     let isValid = true;
 
-    // Validate title
     if (!title.trim()) {
-      errors.title = 'Title is required and cannot be empty';
+      errors.title = 'Title is required';
       isValid = false;
     }
 
-    // Validate subject
     if (!subject.trim()) {
-      errors.subject = 'Subject is required and cannot be empty';
+      errors.subject = 'Subject is required';
       isValid = false;
     }
 
-    // Validate course
     if (!course.trim()) {
-      errors.course = 'Course is required and cannot be empty';
+      errors.course = 'Course is required';
       isValid = false;
     }
 
-    // Validate questions
     questions.forEach((question, index) => {
       const questionErrors = {
         question_text: '',
@@ -113,11 +135,6 @@ const TemplateCreator = () => {
     if (questions.length > 1) {
       const newQuestions = questions.filter((_, i) => i !== index);
       setQuestions(newQuestions);
-      
-      // Clear validation errors for removed question
-      const newErrors = { ...validationErrors };
-      newErrors.questions.splice(index, 1);
-      setValidationErrors(newErrors);
     }
   };
 
@@ -125,13 +142,6 @@ const TemplateCreator = () => {
     const newQuestions = [...questions];
     newQuestions[index][field] = value;
     setQuestions(newQuestions);
-    
-    // Clear validation error for this field
-    if (validationErrors.questions[index]) {
-      const newErrors = { ...validationErrors };
-      newErrors.questions[index][field] = '';
-      setValidationErrors(newErrors);
-    }
   };
 
   const handleAddOption = (questionIndex) => {
@@ -145,7 +155,6 @@ const TemplateCreator = () => {
     if (newQuestions[questionIndex].options.length > 2) {
       newQuestions[questionIndex].options.splice(optionIndex, 1);
       
-      // Adjust correct_answer if needed
       if (newQuestions[questionIndex].correct_answer >= newQuestions[questionIndex].options.length) {
         newQuestions[questionIndex].correct_answer = newQuestions[questionIndex].options.length - 1;
       }
@@ -158,26 +167,12 @@ const TemplateCreator = () => {
     const newQuestions = [...questions];
     newQuestions[questionIndex].options[optionIndex] = value;
     setQuestions(newQuestions);
-    
-    // Clear validation error for options
-    if (validationErrors.questions[questionIndex]) {
-      const newErrors = { ...validationErrors };
-      newErrors.questions[questionIndex].options = '';
-      setValidationErrors(newErrors);
-    }
   };
 
   const handleCorrectAnswerChange = (questionIndex, optionIndex) => {
     const newQuestions = [...questions];
     newQuestions[questionIndex].correct_answer = optionIndex;
     setQuestions(newQuestions);
-    
-    // Clear validation error for correct answer
-    if (validationErrors.questions[questionIndex]) {
-      const newErrors = { ...validationErrors };
-      newErrors.questions[questionIndex].correct_answer = '';
-      setValidationErrors(newErrors);
-    }
   };
 
   const handleSubmit = async (e) => {
@@ -191,9 +186,8 @@ const TemplateCreator = () => {
     }
 
     try {
-      setLoading(true);
+      setSaving(true);
       
-      // Prepare questions - all are elaborate type
       const cleanedQuestions = questions.map(q => ({
         question_text: q.question_text.trim(),
         question_type: 'elaborate',
@@ -207,20 +201,27 @@ const TemplateCreator = () => {
         questions: cleanedQuestions,
       };
 
-      const response = await templatesAPI.createTemplate(templateData);
-      setSuccess('Template created successfully!');
+      await templatesAPI.updateTemplate(templateId, templateData);
+      setSuccess('Template updated successfully!');
       
-      // Redirect to dashboard after 2 seconds
       setTimeout(() => {
         navigate('/dashboard');
       }, 2000);
     } catch (err) {
-      const errorMessage = err.response?.data?.message || 'Failed to create template';
+      const errorMessage = err.response?.data?.message || 'Failed to update template';
       setError(errorMessage);
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
+
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+        <CircularProgress size={60} />
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
@@ -236,7 +237,7 @@ const TemplateCreator = () => {
           </IconButton>
           <School sx={{ mr: 2 }} />
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Create Quiz Template
+            Edit Quiz Template
           </Typography>
         </Toolbar>
       </AppBar>
@@ -337,12 +338,6 @@ const TemplateCreator = () => {
                     Example Answer (optional - for reference/grading)
                   </FormLabel>
                   
-                  {validationErrors.questions[questionIndex]?.example_answer && (
-                    <Alert severity="error" sx={{ mt: 1, mb: 2 }}>
-                      {validationErrors.questions[questionIndex].example_answer}
-                    </Alert>
-                  )}
-                  
                   <TextField
                     fullWidth
                     label="Example Answer"
@@ -387,18 +382,18 @@ const TemplateCreator = () => {
               variant="outlined"
               onClick={() => navigate('/dashboard')}
               fullWidth
-              disabled={loading}
+              disabled={saving}
             >
               Cancel
             </Button>
             <Button
               type="submit"
               variant="contained"
-              startIcon={loading ? <CircularProgress size={20} /> : <Save />}
+              startIcon={saving ? <CircularProgress size={20} /> : <Save />}
               fullWidth
-              disabled={loading}
+              disabled={saving}
             >
-              {loading ? 'Creating...' : 'Create Template'}
+              {saving ? 'Saving...' : 'Save Changes'}
             </Button>
           </Box>
         </form>
@@ -407,4 +402,4 @@ const TemplateCreator = () => {
   );
 };
 
-export default TemplateCreator;
+export default TemplateEditor;

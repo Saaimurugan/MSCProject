@@ -127,6 +127,33 @@ aws lambda update-function-code `
 Write-Host "Submit Quiz Lambda deployed" -ForegroundColor Green
 Pop-Location
 
+# Package MSC Evaluate Lambda with PyPDF2
+Write-Host "Packaging MSC Evaluate Lambda with dependencies..."
+Push-Location "$PROJECT_ROOT\backend\MSC_Evaluate"
+$MSC_PACKAGE_DIR = "$TEMP_DIR\msc-evaluate-package"
+New-Item -ItemType Directory -Path $MSC_PACKAGE_DIR -Force | Out-Null
+
+# Install dependencies
+Write-Host "Installing PyPDF2..."
+pip install -r requirements.txt -t $MSC_PACKAGE_DIR --quiet
+
+# Copy Lambda function
+Copy-Item "lambda_function.py" -Destination $MSC_PACKAGE_DIR
+
+# Create zip
+Push-Location $MSC_PACKAGE_DIR
+Compress-Archive -Path "*" -DestinationPath "$TEMP_DIR\msc-evaluate.zip" -Force
+Pop-Location
+
+# Deploy Lambda
+$MSC_FUNCTION = "msc-evaluate-function-$ENVIRONMENT"
+aws lambda update-function-code `
+  --function-name $MSC_FUNCTION `
+  --zip-file "fileb://$TEMP_DIR\msc-evaluate.zip" `
+  --region $REGION | Out-Null
+Write-Host "MSC Evaluate Lambda deployed" -ForegroundColor Green
+Pop-Location
+
 # Cleanup temp directory
 Remove-Item -Path $TEMP_DIR -Recurse -Force
 

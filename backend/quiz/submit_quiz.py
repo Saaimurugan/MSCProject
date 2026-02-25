@@ -4,8 +4,9 @@ from datetime import datetime
 from typing import Dict, Optional
 import uuid
 
-# DynamoDB setup
+# DynamoDB and Lambda setup
 dynamodb = boto3.resource('dynamodb')
+lambda_client = boto3.client('lambda')
 
 # Database Models
 class Template:
@@ -22,15 +23,15 @@ class QuizResult:
         table_name = 'msc-evaluate-quiz-results-dev'
         self.table = dynamodb.Table(table_name)
     
-    def save_result(self, template_id, session_id, answers, total_score, correct_count, total_questions):
+    def save_result(self, template_id, session_id, answers, evaluations, average_score, total_questions):
         result_id = str(uuid.uuid4())
         result = {
             'result_id': result_id,
             'session_id': session_id,
             'template_id': template_id,
             'answers': answers,
-            'total_score': total_score,
-            'correct_count': correct_count,
+            'evaluations': evaluations,
+            'average_score': average_score,
             'total_questions': total_questions,
             'completed_at': datetime.utcnow().isoformat(),
             'created_at': datetime.utcnow().isoformat(),
@@ -47,6 +48,65 @@ def get_cors_headers():
         'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS'
     }
 
+def evaluate_answer(user_answer, example_answer, pdf_data=None):
+    """Call MSC_Evaluate Lambda to evaluate an answer"""
+    try:
+        # If no example answer provided, return a default evaluation
+        if not example_answer:
+            return {
+                'score': 'N/A',
+                'evaluation': 'No example answer provided for comparison',
+                'justification': 'Cannot evaluate without reference answer',
+                'suggessions': 'Please provide an example answer in the template'
+            }
+        
+        payload = {
+            'user_answer': user_answer,
+            'example_answer': example_answer
+        }
+        
+        if pdf_data:
+            payload['pdf_data'] = pdf_data
+        
+        response = lambda_client.invoke(
+            FunctionName='msc-evaluate-function-dev',
+            InvocationType='RequestResponse',
+            Payload=json.dumps(payload)
+        )
+        
+        response_payload = json.loads(response['Payload'].read())
+        
+        if response_payload.get('statusCode') == 200:
+            # Parse the evaluation response
+            evaluation_text = response_payload.get('body', '{}')
+            try:
+                # Try to parse as JSON
+                evaluation = json.loads(evaluation_text)
+            except:
+                # If not JSON, return as text
+                evaluation = {
+                    'score': 'N/A',
+                    'evaluation': evaluation_text,
+                    'justification': '',
+                    'suggessions': ''
+                }
+            return evaluation
+        else:
+            return {
+                'score': 'Error',
+                'evaluation': 'Failed to evaluate answer',
+                'justification': response_payload.get('body', 'Unknown error'),
+                'suggessions': ''
+            }
+    except Exception as e:
+        print(f"Evaluation error: {str(e)}")
+        return {
+            'score': 'Error',
+            'evaluation': 'Failed to evaluate answer',
+            'justification': str(e),
+            'suggessions': ''
+        }
+
 def lambda_handler(event, context):
     # Handle OPTIONS request for CORS preflight
     if event.get('httpMethod') == 'OPTIONS':
@@ -60,7 +120,7 @@ def lambda_handler(event, context):
         body = json.loads(event['body'])
         template_id = body.get('template_id')
         session_id = body.get('session_id')
-        answers = body.get('answers', [])  # List of {question_index, selected_answer}
+        answers = body.get('answers', [])  # List of {question_index, answer_text, pdf_data, pdf_filename}
         
         # Validate required fields
         if not template_id:
@@ -81,7 +141,7 @@ def lambda_handler(event, context):
         if not session_id:
             session_id = str(uuid.uuid4())
         
-        # Get template to access correct answers
+        # Get template to access example answers
         template_model = Template()
         template = template_model.get_item({'template_id': template_id})
         
@@ -110,13 +170,14 @@ def lambda_handler(event, context):
                 })
             }
         
-        # Calculate score and build detailed results
-        correct_count = 0
-        detailed_results = []
+        # Evaluate each answer using MSC_Evaluate Lambda
+        evaluations = []
+        total_score = 0
         
         for answer in answers:
             question_index = answer.get('question_index')
-            selected_answer = answer.get('selected_answer')
+            answer_text = answer.get('answer_text', '')
+            pdf_data = answer.get('pdf_data')
             
             if question_index < 0 or question_index >= total_questions:
                 return {
@@ -126,21 +187,32 @@ def lambda_handler(event, context):
                 }
             
             question = questions[question_index]
-            correct_answer = question.get('correct_answer')
+            example_answer = question.get('example_answer', '')
             
-            is_correct = (selected_answer == correct_answer)
-            if is_correct:
-                correct_count += 1
+            # Call MSC_Evaluate to get evaluation
+            evaluation = evaluate_answer(answer_text, example_answer, pdf_data)
             
-            detailed_results.append({
+            # Extract numeric score
+            score_str = evaluation.get('score', '0')
+            try:
+                # Try to extract number from score string
+                score_value = float(''.join(filter(lambda x: x.isdigit() or x == '.', str(score_str))))
+            except:
+                score_value = 0
+            
+            total_score += score_value
+            
+            evaluations.append({
                 'question_index': question_index,
-                'is_correct': is_correct,
-                'selected_answer': selected_answer,
-                'correct_answer': correct_answer
+                'score': evaluation.get('score'),
+                'evaluation': evaluation.get('evaluation'),
+                'justification': evaluation.get('justification'),
+                'suggessions': evaluation.get('suggessions'),
+                'user_answer': answer_text if answer_text else f"PDF: {answer.get('pdf_filename', 'uploaded')}"
             })
         
-        # Calculate percentage score
-        total_score = (correct_count / total_questions * 100) if total_questions > 0 else 0
+        # Calculate average score
+        average_score = (total_score / total_questions) if total_questions > 0 else 0
         
         # Save results to database
         quiz_result_model = QuizResult()
@@ -148,8 +220,8 @@ def lambda_handler(event, context):
             session_id=session_id,
             template_id=template_id,
             answers=answers,
-            total_score=total_score,
-            correct_count=correct_count,
+            evaluations=evaluations,
+            average_score=average_score,
             total_questions=total_questions
         )
         
@@ -159,23 +231,25 @@ def lambda_handler(event, context):
             'body': json.dumps({
                 'result_id': result['result_id'],
                 'session_id': session_id,
-                'total_score': total_score,
-                'correct_count': correct_count,
+                'average_score': average_score,
                 'total_questions': total_questions,
-                'detailed_results': detailed_results
+                'evaluations': evaluations
             })
         }
         
-    except json.JSONDecodeError:
+    except json.JSONDecodeError as e:
+        print(f"JSON decode error: {str(e)}")
         return {
             'statusCode': 400,
             'headers': get_cors_headers(),
             'body': json.dumps({'error': 'Invalid JSON in request body'})
         }
     except Exception as e:
-        print(f"Quiz submit error: {e}")
+        print(f"Quiz submit error: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return {
             'statusCode': 500,
             'headers': get_cors_headers(),
-            'body': json.dumps({'error': 'Internal server error'})
+            'body': json.dumps({'error': f'Internal server error: {str(e)}'})
         }
