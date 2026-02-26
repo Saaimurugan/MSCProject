@@ -10,6 +10,7 @@ import QuizTaking from './components/quiz/QuizTaking';
 import QuizResults from './components/quiz/QuizResults';
 import TemplateCreator from './components/templates/TemplateCreator';
 import TemplateEditor from './components/templates/TemplateEditor';
+import ResultsReport from './components/results/ResultsReport';
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
             <Route path="/template/edit/:templateId" element={<TemplateEditor />} />
             <Route path="/quiz/:templateId" element={<QuizTaking />} />
             <Route path="/quiz/:templateId/results" element={<QuizResults />} />
+            <Route path="/results" element={<ResultsReport />} />
             
             {/* Catch all route - redirect to landing page */}
             <Route path="*" element={<Navigate to="/" />} />

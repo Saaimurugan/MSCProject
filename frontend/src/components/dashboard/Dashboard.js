@@ -168,6 +168,14 @@ const Dashboard = () => {
           
           <Button 
             color="inherit" 
+            onClick={() => navigate('/results')}
+            sx={{ mr: 2 }}
+          >
+            📊 View Results
+          </Button>
+          
+          <Button 
+            color="inherit" 
             startIcon={<Add />}
             onClick={handleCreateTemplate}
           >

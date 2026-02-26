@@ -35,12 +35,16 @@ class QuizResult:
         table_name = 'msc-evaluate-quiz-results-dev'
         self.table = dynamodb.Table(table_name)
     
-    def save_result(self, template_id, session_id, answers, evaluations, average_score, total_questions):
+    def save_result(self, template_id, session_id, student_name, course, subject, title, answers, evaluations, average_score, total_questions):
         result_id = str(uuid.uuid4())
         result = {
             'result_id': result_id,
             'session_id': session_id,
             'template_id': template_id,
+            'student_name': student_name,
+            'course': course,
+            'subject': subject,
+            'title': title,
             'answers': convert_to_decimal(answers),
             'evaluations': convert_to_decimal(evaluations),
             'average_score': Decimal(str(average_score)),
@@ -51,6 +55,10 @@ class QuizResult:
         }
         self.table.put_item(Item=result)
         return result
+    
+    def get_all_results(self):
+        response = self.table.scan()
+        return response.get('Items', [])
 
 def get_cors_headers():
     return {
@@ -132,6 +140,7 @@ def lambda_handler(event, context):
         body = json.loads(event['body'])
         template_id = body.get('template_id')
         session_id = body.get('session_id')
+        student_name = body.get('student_name', 'Anonymous')
         answers = body.get('answers', [])  # List of {question_index, answer_text, pdf_data, pdf_filename}
         
         # Validate required fields
@@ -140,6 +149,13 @@ def lambda_handler(event, context):
                 'statusCode': 400,
                 'headers': get_cors_headers(),
                 'body': json.dumps({'error': 'Template ID is required'})
+            }
+        
+        if not student_name or not student_name.strip():
+            return {
+                'statusCode': 400,
+                'headers': get_cors_headers(),
+                'body': json.dumps({'error': 'Student name is required'})
             }
         
         if not answers:
@@ -166,6 +182,9 @@ def lambda_handler(event, context):
         
         questions = template.get('questions', [])
         total_questions = len(questions)
+        course = template.get('course', 'Unknown')
+        subject = template.get('subject', 'Unknown')
+        title = template.get('title', 'Unknown')
         
         # Validate all questions are answered
         answered_indices = {answer.get('question_index') for answer in answers}
@@ -210,7 +229,7 @@ def lambda_handler(event, context):
                 # Try to extract number from score string
                 score_value = float(''.join(filter(lambda x: x.isdigit() or x == '.', str(score_str))))
             except:
-                score_value = 0
+                score_value = 0.0
             
             total_score += score_value
             
@@ -224,13 +243,17 @@ def lambda_handler(event, context):
             })
         
         # Calculate average score
-        average_score = (total_score / total_questions) if total_questions > 0 else 0
+        average_score = (total_score / total_questions) if total_questions > 0 else 0.0
         
         # Save results to database
         quiz_result_model = QuizResult()
         result = quiz_result_model.save_result(
             session_id=session_id,
             template_id=template_id,
+            student_name=student_name.strip(),
+            course=course,
+            subject=subject,
+            title=title,
             answers=answers,
             evaluations=evaluations,
             average_score=average_score,

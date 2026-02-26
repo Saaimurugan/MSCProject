@@ -13,6 +13,8 @@ const QuizTaking = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [studentName, setStudentName] = useState('');
+  const [quizStarted, setQuizStarted] = useState(false);
 
   useEffect(() => {
     loadTemplate();
@@ -131,6 +133,7 @@ const QuizTaking = () => {
 
       const quizData = {
         template_id: templateId,
+        student_name: studentName,
         answers: answersWithPdf
       };
 
@@ -177,6 +180,52 @@ const QuizTaking = () => {
         <button onClick={() => navigate('/dashboard')} className="btn-primary">
           Back to Dashboard
         </button>
+      </div>
+    );
+  }
+
+  // Show student name input before starting quiz
+  if (!quizStarted) {
+    return (
+      <div className="quiz-container">
+        <div className="student-info-card">
+          <h2>Welcome to the Quiz</h2>
+          <p className="quiz-details">{template.title}</p>
+          <p className="quiz-details">{template.subject} - {template.course}</p>
+          
+          <div className="form-group">
+            <label htmlFor="studentName">Enter Your Name</label>
+            <input
+              id="studentName"
+              type="text"
+              value={studentName}
+              onChange={(e) => setStudentName(e.target.value)}
+              placeholder="Your full name"
+              autoFocus
+            />
+          </div>
+
+          {error && <div className="error-message">{error}</div>}
+
+          <div className="quiz-controls">
+            <button onClick={() => navigate('/dashboard')} className="btn-secondary">
+              Cancel
+            </button>
+            <button 
+              onClick={() => {
+                if (!studentName.trim()) {
+                  setError('Please enter your name to continue');
+                  return;
+                }
+                setError('');
+                setQuizStarted(true);
+              }}
+              className="btn-primary"
+            >
+              Start Quiz
+            </button>
+          </div>
+        </div>
       </div>
     );
   }

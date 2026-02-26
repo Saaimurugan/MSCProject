@@ -29,4 +29,15 @@ export const quizAPI = {
   submitQuiz: (quizData) => api.post('/submit', quizData),
 };
 
+// Results API calls
+export const resultsAPI = {
+  getAllResults: (filters) => {
+    const params = {};
+    if (filters?.student_name) params.student_name = filters.student_name;
+    if (filters?.course) params.course = filters.course;
+    if (filters?.subject) params.subject = filters.subject;
+    return api.get('/results', { params });
+  },
+};
+
 export default api;

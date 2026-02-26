@@ -178,6 +178,21 @@ Resources:
       Timeout: 30
       MemorySize: 256
 
+  GetResultsFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub 'msc-evaluate-get-results-${Environment}'
+      Runtime: python3.11
+      Handler: get_results.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          # Placeholder - will be updated by deployment script
+          def lambda_handler(event, context):
+              return {'statusCode': 200, 'body': 'Placeholder'}
+      Timeout: 30
+      MemorySize: 256
+
   MSCEvaluateFunction:
     Type: AWS::Lambda::Function
     Properties:
@@ -231,6 +246,13 @@ Resources:
       RestApiId: !Ref ApiGateway
       ParentId: !GetAtt ApiGateway.RootResourceId
       PathPart: submit
+
+  ResultsResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref ApiGateway
+      ParentId: !GetAtt ApiGateway.RootResourceId
+      PathPart: results
 
   # OPTIONS Methods for CORS
   TemplatesOptionsMethod:
@@ -337,6 +359,32 @@ Resources:
             method.response.header.Access-Control-Allow-Methods: true
             method.response.header.Access-Control-Allow-Origin: true
 
+  ResultsOptionsMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ApiGateway
+      ResourceId: !Ref ResultsResource
+      HttpMethod: OPTIONS
+      AuthorizationType: NONE
+      Integration:
+        Type: MOCK
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,OPTIONS'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+            ResponseTemplates:
+              application/json: ''
+      MethodResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Origin: true
+
   # API Methods
   TemplatesPostMethod:
     Type: AWS::ApiGateway::Method
@@ -422,6 +470,18 @@ Resources:
         IntegrationHttpMethod: POST
         Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SubmitQuizFunction.Arn}/invocations'
 
+  ResultsGetMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ApiGateway
+      ResourceId: !Ref ResultsResource
+      HttpMethod: GET
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetResultsFunction.Arn}/invocations'
+
   # Lambda Permissions for API Gateway
   TemplateApiInvokePermission:
     Type: AWS::Lambda::Permission
@@ -447,6 +507,14 @@ Resources:
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGateway}/*'
 
+  GetResultsInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref GetResultsFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGateway}/*'
+
   # API Gateway Deployment
   ApiDeployment:
     Type: AWS::ApiGateway::Deployment
@@ -458,10 +526,12 @@ Resources:
       - TemplateIdDeleteMethod
       - TakeQuizGetMethod
       - SubmitQuizPostMethod
+      - ResultsGetMethod
       - TemplatesOptionsMethod
       - TemplateIdOptionsMethod
       - QuizOptionsMethod
       - SubmitOptionsMethod
+      - ResultsOptionsMethod
     Properties:
       RestApiId: !Ref ApiGateway
 
