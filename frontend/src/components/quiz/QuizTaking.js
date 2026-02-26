@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { templatesAPI, quizAPI } from '../../services/api';
+import { isAdmin } from '../../utils/auth';
 import './Quiz.css';
 
 const QuizTaking = () => {
@@ -15,6 +16,7 @@ const QuizTaking = () => {
   const [error, setError] = useState('');
   const [studentName, setStudentName] = useState('');
   const [quizStarted, setQuizStarted] = useState(false);
+  const userIsAdmin = isAdmin();
 
   useEffect(() => {
     loadTemplate();
@@ -314,7 +316,7 @@ const QuizTaking = () => {
             </div>
           </div>
 
-          {currentQuestion.example_answer && (
+          {currentQuestion.example_answer && userIsAdmin && (
             <div className="example-answer-hint">
               <strong>Example Answer:</strong>
               <p>{currentQuestion.example_answer}</p>

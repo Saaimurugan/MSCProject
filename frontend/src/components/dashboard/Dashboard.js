@@ -35,10 +35,12 @@ import {
   School,
   Edit,
   Delete as DeleteIcon,
+  Logout,
 } from '@mui/icons-material';
 import { templatesAPI } from '../../services/api';
+import { isAdmin, logout, getUsername } from '../../utils/auth';
 
-const Dashboard = () => {
+const Dashboard = ({ onLogout }) => {
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -50,6 +52,8 @@ const Dashboard = () => {
   const [templateToDelete, setTemplateToDelete] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const navigate = useNavigate();
+  const userIsAdmin = isAdmin();
+  const username = getUsername();
 
   useEffect(() => {
     loadTemplates();
@@ -147,6 +151,14 @@ const Dashboard = () => {
     setSnackbar({ ...snackbar, open: false });
   };
 
+  const handleLogout = () => {
+    logout();
+    if (onLogout) {
+      onLogout();
+    }
+    navigate('/login');
+  };
+
   // Group templates by course and subject
   const groupedTemplates = Array.isArray(templates) ? templates.reduce((acc, template) => {
     const key = `${template.course} - ${template.subject}`;
@@ -166,21 +178,38 @@ const Dashboard = () => {
             AI Assessment
           </Typography>
           
-          <Button 
-            color="inherit" 
-            onClick={() => navigate('/results')}
-            sx={{ mr: 2 }}
-          >
-            📊 View Results
-          </Button>
+          <Typography variant="body2" sx={{ mr: 2, color: 'rgba(255,255,255,0.8)' }}>
+            {username} ({userIsAdmin ? 'Admin' : 'Student'})
+          </Typography>
           
-          <Button 
+          {userIsAdmin && (
+            <>
+              <Button 
+                color="inherit" 
+                onClick={() => navigate('/results')}
+                sx={{ mr: 2 }}
+              >
+                📊 View Results
+              </Button>
+              
+              <Button 
+                color="inherit" 
+                startIcon={<Add />}
+                onClick={handleCreateTemplate}
+                sx={{ mr: 2 }}
+              >
+                Create Template
+              </Button>
+            </>
+          )}
+          
+          <IconButton 
             color="inherit" 
-            startIcon={<Add />}
-            onClick={handleCreateTemplate}
+            onClick={handleLogout}
+            title="Logout"
           >
-            Create Template
-          </Button>
+            <Logout />
+          </IconButton>
         </Toolbar>
       </AppBar>
 
@@ -191,7 +220,9 @@ const Dashboard = () => {
             Welcome to AI Assessment! 👋
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Create quiz templates or take quizzes from available templates below.
+            {userIsAdmin 
+              ? 'Create quiz templates or take quizzes from available templates below.'
+              : 'Select a quiz template below to start your assessment.'}
           </Typography>
         </Box>
 
@@ -294,26 +325,28 @@ const Dashboard = () => {
                               <Typography variant="h6" gutterBottom sx={{ flexGrow: 1, pr: 1 }}>
                                 {template.title}
                               </Typography>
-                              <Box display="flex" gap={0.5}>
-                                <Tooltip title="Edit Template">
-                                  <IconButton
-                                    size="small"
-                                    color="primary"
-                                    onClick={(e) => handleEditTemplate(e, template.template_id)}
-                                  >
-                                    <Edit fontSize="small" />
-                                  </IconButton>
-                                </Tooltip>
-                                <Tooltip title="Delete Template">
-                                  <IconButton
-                                    size="small"
-                                    color="error"
-                                    onClick={(e) => handleDeleteClick(e, template)}
-                                  >
-                                    <DeleteIcon fontSize="small" />
-                                  </IconButton>
-                                </Tooltip>
-                              </Box>
+                              {userIsAdmin && (
+                                <Box display="flex" gap={0.5}>
+                                  <Tooltip title="Edit Template">
+                                    <IconButton
+                                      size="small"
+                                      color="primary"
+                                      onClick={(e) => handleEditTemplate(e, template.template_id)}
+                                    >
+                                      <Edit fontSize="small" />
+                                    </IconButton>
+                                  </Tooltip>
+                                  <Tooltip title="Delete Template">
+                                    <IconButton
+                                      size="small"
+                                      color="error"
+                                      onClick={(e) => handleDeleteClick(e, template)}
+                                    >
+                                      <DeleteIcon fontSize="small" />
+                                    </IconButton>
+                                  </Tooltip>
+                                </Box>
+                              )}
                             </Box>
                             <Box display="flex" alignItems="center" gap={1} mb={2}>
                               <Chip 
