@@ -1,6 +1,7 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import './Quiz.css';
+import './Quiz-Results.css';
 
 const QuizResults = () => {
   const location = useLocation();
