@@ -310,12 +310,7 @@ const Dashboard = ({ onLogout }) => {
                         md={4} 
                         lg={4} 
                         xl={4}
-                        key={template.template_id} 
-                        sx={{ 
-                          display: 'flex',
-                          flexBasis: { xs: '100%', sm: '33.333%' },
-                          maxWidth: { xs: '100%', sm: '33.333%' }
-                        }}
+                        key={template.template_id}
                       >
                         <Card 
                           elevation={0}
