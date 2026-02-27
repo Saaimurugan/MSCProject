@@ -265,6 +265,33 @@ const QuizTaking = () => {
         ))}
       </div>
 
+      <div className="quiz-controls quiz-controls-top">
+        <button 
+          onClick={previousQuestion} 
+          disabled={currentQuestionIndex === 0}
+          className="btn-secondary"
+        >
+          Previous
+        </button>
+
+        {currentQuestionIndex === template.questions.length - 1 ? (
+          <button 
+            onClick={submitQuiz} 
+            disabled={submitting}
+            className="btn-primary submit-btn"
+          >
+            {submitting ? 'Submitting...' : 'Submit Quiz'}
+          </button>
+        ) : (
+          <button 
+            onClick={nextQuestion}
+            className="btn-primary"
+          >
+            Next
+          </button>
+        )}
+      </div>
+
       <div className="question-box">
         <h3>{currentQuestion.question_text}</h3>
       </div>
@@ -326,33 +353,6 @@ const QuizTaking = () => {
       </div>
 
       {error && <div className="error-message">{error}</div>}
-
-      <div className="quiz-controls">
-        <button 
-          onClick={previousQuestion} 
-          disabled={currentQuestionIndex === 0}
-          className="btn-secondary"
-        >
-          Previous
-        </button>
-
-        {currentQuestionIndex === template.questions.length - 1 ? (
-          <button 
-            onClick={submitQuiz} 
-            disabled={submitting}
-            className="btn-primary submit-btn"
-          >
-            {submitting ? 'Submitting...' : 'Submit Quiz'}
-          </button>
-        ) : (
-          <button 
-            onClick={nextQuestion}
-            className="btn-primary"
-          >
-            Next
-          </button>
-        )}
-      </div>
     </div>
   );
 };

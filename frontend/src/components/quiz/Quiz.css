@@ -1009,3 +1009,20 @@
 .form-group input::placeholder {
   color: #bdc3c7;
 }
+
+/* Quiz Controls at Top */
+.quiz-controls-top {
+  margin-top: 0;
+  margin-bottom: 30px;
+  padding: 20px;
+  background: white;
+  border-radius: 15px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+}
+
+@media (max-width: 768px) {
+  .quiz-controls-top {
+    padding: 15px;
+    margin-bottom: 25px;
+  }
+}
