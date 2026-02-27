@@ -1,0 +1,9 @@
+{
+  "httpMethod": "DELETE",
+  "pathParameters": {
+    "id": "test-id"
+  },
+  "headers": {
+    "Content-Type": "application/json"
+  }
+}

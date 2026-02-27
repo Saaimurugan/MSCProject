@@ -9,6 +9,9 @@ const ResultsReport = () => {
   const [filteredResults, setFilteredResults] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [selectedResult, setSelectedResult] = useState(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
   
   // Filter states
   const [studentFilter, setStudentFilter] = useState('');
@@ -33,9 +36,15 @@ const ResultsReport = () => {
       const response = await resultsAPI.getAllResults();
       setResults(response.data.results);
       
-      // Extract unique courses and subjects
-      const uniqueCourses = [...new Set(response.data.results.map(r => r.course))].sort();
-      const uniqueSubjects = [...new Set(response.data.results.map(r => r.subject))].sort();
+      // Extract unique courses and subjects (filter out empty/null values)
+      const uniqueCourses = [...new Set(response.data.results
+        .map(r => r.course)
+        .filter(c => c && c.trim())
+      )].sort();
+      const uniqueSubjects = [...new Set(response.data.results
+        .map(r => r.subject)
+        .filter(s => s && s.trim())
+      )].sort();
       setCourses(uniqueCourses);
       setSubjects(uniqueSubjects);
     } catch (error) {
@@ -81,6 +90,38 @@ const ResultsReport = () => {
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+  };
+
+  const handleViewDetails = (result) => {
+    setSelectedResult(result);
+    setShowDetailModal(true);
+  };
+
+  const handleCloseDetail = () => {
+    setShowDetailModal(false);
+    setSelectedResult(null);
+  };
+
+  const handleDeleteClick = (e, result) => {
+    e.stopPropagation();
+    setDeleteConfirm(result);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteConfirm) return;
+    
+    try {
+      await resultsAPI.deleteResult(deleteConfirm.result_id);
+      setResults(results.filter(r => r.result_id !== deleteConfirm.result_id));
+      setDeleteConfirm(null);
+    } catch (error) {
+      setError('Failed to delete result');
+      setTimeout(() => setError(''), 3000);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteConfirm(null);
   };
 
   if (loading) {
@@ -203,11 +244,16 @@ const ResultsReport = () => {
                   <th>Score</th>
                   <th>Questions</th>
                   <th>Date</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredResults.map((result) => (
-                  <tr key={result.result_id}>
+                  <tr 
+                    key={result.result_id} 
+                    onClick={() => handleViewDetails(result)}
+                    className="clickable-row"
+                  >
                     <td className="student-name">{result.student_name}</td>
                     <td>{result.course}</td>
                     <td>{result.subject}</td>
@@ -219,6 +265,15 @@ const ResultsReport = () => {
                     </td>
                     <td className="text-center">{result.total_questions}</td>
                     <td className="date-cell">{formatDate(result.completed_at)}</td>
+                    <td>
+                      <button 
+                        className="btn-delete-small"
+                        onClick={(e) => handleDeleteClick(e, result)}
+                        title="Delete result"
+                      >
+                        🗑️
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -226,6 +281,130 @@ const ResultsReport = () => {
           </div>
         )}
       </div>
+
+      {/* Detail Modal */}
+      {showDetailModal && selectedResult && (
+        <div className="modal-overlay" onClick={handleCloseDetail}>
+          <div className="modal-content detail-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>📝 Quiz Details</h2>
+              <button className="btn-close" onClick={handleCloseDetail}>✕</button>
+            </div>
+            
+            <div className="modal-body">
+              <div className="detail-info">
+                <div className="info-row">
+                  <span className="info-label">Student:</span>
+                  <span className="info-value">{selectedResult.student_name}</span>
+                </div>
+                <div className="info-row">
+                  <span className="info-label">Course:</span>
+                  <span className="info-value">{selectedResult.course}</span>
+                </div>
+                <div className="info-row">
+                  <span className="info-label">Subject:</span>
+                  <span className="info-value">{selectedResult.subject}</span>
+                </div>
+                <div className="info-row">
+                  <span className="info-label">Quiz Title:</span>
+                  <span className="info-value">{selectedResult.title}</span>
+                </div>
+                <div className="info-row">
+                  <span className="info-label">Average Score:</span>
+                  <span className={`score-badge ${getScoreClass(selectedResult.average_score)}`}>
+                    {selectedResult.average_score.toFixed(1)}%
+                  </span>
+                </div>
+                <div className="info-row">
+                  <span className="info-label">Completed:</span>
+                  <span className="info-value">{formatDate(selectedResult.completed_at)}</span>
+                </div>
+              </div>
+
+              <div className="questions-answers">
+                <h3>Questions & Answers</h3>
+                {selectedResult.evaluations && selectedResult.evaluations.map((evaluation, index) => {
+                  const question = selectedResult.questions && selectedResult.questions[evaluation.question_index];
+                  return (
+                    <div key={index} className="qa-card">
+                      <div className="qa-header">
+                        <span className="qa-number">Question {evaluation.question_index + 1}</span>
+                        <span className={`qa-score ${getScoreClass(parseFloat(evaluation.score) || 0)}`}>
+                          Score: {evaluation.score}
+                        </span>
+                      </div>
+                      
+                      <div className="qa-content">
+                        {question && (
+                          <div className="qa-section question-section">
+                            <strong>Question:</strong>
+                            <p>{question.question_text}</p>
+                          </div>
+                        )}
+                        
+                        <div className="qa-section">
+                          <strong>Student's Answer:</strong>
+                          <p>{evaluation.user_answer}</p>
+                        </div>
+                        
+                        {question && question.example_answer && (
+                          <div className="qa-section">
+                            <strong>Example Answer:</strong>
+                            <p>{question.example_answer}</p>
+                          </div>
+                        )}
+                        
+                        <div className="qa-section">
+                          <strong>Evaluation:</strong>
+                          <p>{evaluation.evaluation}</p>
+                        </div>
+                        
+                        {evaluation.justification && (
+                          <div className="qa-section">
+                            <strong>Justification:</strong>
+                            <p>{evaluation.justification}</p>
+                          </div>
+                        )}
+                        
+                        {evaluation.suggessions && (
+                          <div className="qa-section">
+                            <strong>Suggestions:</strong>
+                            <p>{evaluation.suggessions}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirm && (
+        <div className="modal-overlay" onClick={handleDeleteCancel}>
+          <div className="modal-content confirm-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>⚠️ Confirm Delete</h2>
+            </div>
+            <div className="modal-body">
+              <p>Are you sure you want to delete this result?</p>
+              <div className="confirm-details">
+                <p><strong>Student:</strong> {deleteConfirm.student_name}</p>
+                <p><strong>Quiz:</strong> {deleteConfirm.title}</p>
+                <p><strong>Score:</strong> {deleteConfirm.average_score.toFixed(1)}%</p>
+              </div>
+              <p className="warning-text">This action cannot be undone.</p>
+            </div>
+            <div className="modal-footer">
+              <button className="btn-cancel" onClick={handleDeleteCancel}>Cancel</button>
+              <button className="btn-delete" onClick={handleDeleteConfirm}>Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

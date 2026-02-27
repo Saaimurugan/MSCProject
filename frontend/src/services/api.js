@@ -38,6 +38,7 @@ export const resultsAPI = {
     if (filters?.subject) params.subject = filters.subject;
     return api.get('/results', { params });
   },
+  deleteResult: (resultId) => api.delete(`/results/${resultId}`),
 };
 
 export default api;

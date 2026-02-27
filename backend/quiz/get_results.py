@@ -34,8 +34,10 @@ def lambda_handler(event, context):
         }
     
     try:
-        table_name = 'msc-evaluate-quiz-results-dev'
-        table = dynamodb.Table(table_name)
+        results_table_name = 'msc-evaluate-quiz-results-dev'
+        templates_table_name = 'msc-evaluate-templates-dev'
+        results_table = dynamodb.Table(results_table_name)
+        templates_table = dynamodb.Table(templates_table_name)
         
         # Get query parameters for filtering
         query_params = event.get('queryStringParameters') or {}
@@ -62,14 +64,27 @@ def lambda_handler(event, context):
         # Execute scan
         if filter_parts:
             filter_expression = ' AND '.join(filter_parts)
-            response = table.scan(
+            response = results_table.scan(
                 FilterExpression=filter_expression,
                 ExpressionAttributeValues=expression_values
             )
         else:
-            response = table.scan()
+            response = results_table.scan()
         
         results = response.get('Items', [])
+        
+        # Enrich results with template questions
+        for result in results:
+            template_id = result.get('template_id')
+            if template_id:
+                try:
+                    template_response = templates_table.get_item(Key={'template_id': template_id})
+                    template = template_response.get('Item')
+                    if template:
+                        result['questions'] = template.get('questions', [])
+                except Exception as e:
+                    print(f"Error fetching template {template_id}: {e}")
+                    result['questions'] = []
         
         # Convert Decimal types to int/float for JSON serialization
         results = decimal_to_number(results)

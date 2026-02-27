@@ -42,7 +42,7 @@ const Login = ({ onLogin }) => {
     <div className="login-container">
       <div className="login-card">
         <div className="login-header">
-          <h1>🎓 MSC Evaluate</h1>
+          <h1>🎓 AI Evaluate</h1>
           <p>Quiz Management System</p>
         </div>
 

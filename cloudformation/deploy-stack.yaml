@@ -193,6 +193,21 @@ Resources:
       Timeout: 30
       MemorySize: 256
 
+  DeleteResultFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub 'msc-evaluate-delete-result-${Environment}'
+      Runtime: python3.11
+      Handler: delete_result.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          # Placeholder - will be updated by deployment script
+          def lambda_handler(event, context):
+              return {'statusCode': 200, 'body': 'Placeholder'}
+      Timeout: 30
+      MemorySize: 256
+
   MSCEvaluateFunction:
     Type: AWS::Lambda::Function
     Properties:
@@ -253,6 +268,13 @@ Resources:
       RestApiId: !Ref ApiGateway
       ParentId: !GetAtt ApiGateway.RootResourceId
       PathPart: results
+
+  ResultIdResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref ApiGateway
+      ParentId: !Ref ResultsResource
+      PathPart: '{id}'
 
   # OPTIONS Methods for CORS
   TemplatesOptionsMethod:
@@ -385,6 +407,32 @@ Resources:
             method.response.header.Access-Control-Allow-Methods: true
             method.response.header.Access-Control-Allow-Origin: true
 
+  ResultIdOptionsMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ApiGateway
+      ResourceId: !Ref ResultIdResource
+      HttpMethod: OPTIONS
+      AuthorizationType: NONE
+      Integration:
+        Type: MOCK
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'DELETE,OPTIONS'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+            ResponseTemplates:
+              application/json: ''
+      MethodResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Origin: true
+
   # API Methods
   TemplatesPostMethod:
     Type: AWS::ApiGateway::Method
@@ -482,6 +530,18 @@ Resources:
         IntegrationHttpMethod: POST
         Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetResultsFunction.Arn}/invocations'
 
+  ResultDeleteMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ApiGateway
+      ResourceId: !Ref ResultIdResource
+      HttpMethod: DELETE
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${DeleteResultFunction.Arn}/invocations'
+
   # Lambda Permissions for API Gateway
   TemplateApiInvokePermission:
     Type: AWS::Lambda::Permission
@@ -515,6 +575,14 @@ Resources:
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGateway}/*'
 
+  DeleteResultInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref DeleteResultFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGateway}/*'
+
   # API Gateway Deployment
   ApiDeployment:
     Type: AWS::ApiGateway::Deployment
@@ -527,11 +595,13 @@ Resources:
       - TakeQuizGetMethod
       - SubmitQuizPostMethod
       - ResultsGetMethod
+      - ResultDeleteMethod
       - TemplatesOptionsMethod
       - TemplateIdOptionsMethod
       - QuizOptionsMethod
       - SubmitOptionsMethod
       - ResultsOptionsMethod
+      - ResultIdOptionsMethod
     Properties:
       RestApiId: !Ref ApiGateway
 

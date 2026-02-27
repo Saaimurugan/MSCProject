@@ -53,31 +53,39 @@ def lambda_handler(event, context):
                 'body': json.dumps({'error': 'No answer provided (text or PDF)'})
             }
 
-        # Construct the prompt to generate HTML JD
-        prompt = f'''
-        You are a professor responsible for comparing a given response with the provided reference answer. Evaluate the response and assign a score.
-        User Answer:
-        {user_answer}
-        Example Answer:
-        {example_answer}
+        # Construct the prompt for evaluation
+        prompt = f'''You are an expert professor evaluating student answers. Your task is to compare the student's answer with the reference answer and provide a fair, accurate score.
 
-        Return only the score, the score should be purly based on the example_answer.
-        Explain the evaluation, justify the score and suggession to score more.
+**Student's Answer:**
+{user_answer}
 
-        All the above should be provided as the below JSON:
-        "score": "<score>",
-        "evaluation": "<evaluation>",
-        "justification": "<justification>",
-        "suggessions": "suggessions"
-        '''
+**Reference Answer (Example):**
+{example_answer}
+
+**Evaluation Guidelines:**
+1. Score from 0-100 based on correctness, completeness, and accuracy
+2. If the student's answer matches or closely matches the reference answer, give 90-100
+3. If the answer covers most key points but misses some details, give 70-89
+4. If the answer is partially correct, give 50-69
+5. If the answer is mostly incorrect or incomplete, give below 50
+
+**Required Output Format (JSON):**
+{{
+    "score": "<numeric score 0-100>",
+    "evaluation": "<brief evaluation of the answer>",
+    "justification": "<explain why this score was given>",
+    "suggessions": "<suggestions for improvement>"
+}}
+
+Provide ONLY the JSON output, no additional text.'''
 
         message_list = [
             {"role": "user", "content": [{"text": prompt}]}
         ]
 
-        system_list = [{"text": "You are a professor responsible for comparing a given response with the provided reference answer. Evaluate the response and assign a score."}]
+        system_list = [{"text": "You are an expert professor who evaluates student answers fairly and accurately. You provide scores from 0-100 based on correctness and completeness compared to the reference answer."}]
 
-        inf_params = {"max_new_tokens": 5000, "top_p": 0.9, "top_k": 20, "temperature": 0.9}
+        inf_params = {"max_new_tokens": 5000, "top_p": 0.9, "top_k": 20, "temperature": 0.3}
 
         request_body = {
             "schemaVersion": "messages-v1",
