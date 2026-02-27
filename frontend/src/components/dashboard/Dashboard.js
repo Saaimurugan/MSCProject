@@ -18,7 +18,6 @@ import {
   MenuItem,
   CircularProgress,
   Alert,
-  Fab,
   Tooltip,
   IconButton,
   Dialog,
@@ -381,20 +380,7 @@ const Dashboard = ({ onLogout }) => {
         )}
       </Container>
 
-      {/* Floating Action Button for Create Template */}
-      <Tooltip title="Create Template">
-        <Fab
-          color="primary"
-          sx={{
-            position: 'fixed',
-            bottom: 24,
-            right: 24,
-          }}
-          onClick={handleCreateTemplate}
-        >
-          <Add />
-        </Fab>
-      </Tooltip>
+      {/* Floating Action Button removed - students don't need quick access to create templates */}
 
       {/* Delete Confirmation Dialog */}
       <Dialog
