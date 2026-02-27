@@ -43,7 +43,7 @@ const Login = ({ onLogin }) => {
       <div className="login-card">
         <div className="login-header">
           <h1>🎓 AI Evaluate</h1>
-          <p>Quiz Management System</p>
+          <p>Assessment Management System</p>
         </div>
 
         <form onSubmit={handleSubmit} className="login-form">
