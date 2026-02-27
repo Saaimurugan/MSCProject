@@ -89,7 +89,22 @@ const ResultsReport = () => {
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+    
+    // Convert to IST (UTC+5:30)
+    const istDate = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+    
+    // Format as dd/mm/yyyy
+    const day = String(istDate.getDate()).padStart(2, '0');
+    const month = String(istDate.getMonth() + 1).padStart(2, '0');
+    const year = istDate.getFullYear();
+    
+    // Format time as HH:MM AM/PM
+    const hours = istDate.getHours();
+    const minutes = String(istDate.getMinutes()).padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const displayHours = hours % 12 || 12;
+    
+    return `${day}/${month}/${year} ${displayHours}:${minutes} ${ampm}`;
   };
 
   const handleViewDetails = (result) => {
@@ -192,7 +207,7 @@ const ResultsReport = () => {
           <div className="summary-icon">👥</div>
           <div className="summary-content">
             <div className="summary-value">{filteredResults.length}</div>
-            <div className="summary-label">Total Results</div>
+            <div className="summary-label">Result(s)</div>
           </div>
         </div>
 
@@ -212,7 +227,7 @@ const ResultsReport = () => {
           <div className="summary-icon">🎓</div>
           <div className="summary-content">
             <div className="summary-value">{courses.length}</div>
-            <div className="summary-label">Courses</div>
+            <div className="summary-label">Course(s)</div>
           </div>
         </div>
 
@@ -220,7 +235,7 @@ const ResultsReport = () => {
           <div className="summary-icon">📚</div>
           <div className="summary-content">
             <div className="summary-value">{subjects.length}</div>
-            <div className="summary-label">Subjects</div>
+            <div className="summary-label">Subject(s)</div>
           </div>
         </div>
       </div>

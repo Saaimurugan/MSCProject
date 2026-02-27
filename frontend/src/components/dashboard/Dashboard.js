@@ -356,7 +356,14 @@ const Dashboard = ({ onLogout }) => {
                               />
                             </Box>
                             <Typography variant="body2" color="text.secondary">
-                              Created: {new Date(template.created_at).toLocaleDateString()}
+                              Created: {(() => {
+                                const date = new Date(template.created_at);
+                                const istDate = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+                                const day = String(istDate.getDate()).padStart(2, '0');
+                                const month = String(istDate.getMonth() + 1).padStart(2, '0');
+                                const year = istDate.getFullYear();
+                                return `${day}/${month}/${year}`;
+                              })()}
                             </Typography>
                           </CardContent>
                           <CardActions>
