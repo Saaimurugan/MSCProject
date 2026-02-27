@@ -95,7 +95,7 @@ const CreateTemplate = () => {
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-      <AppBar position="static" elevation={0}>
+      <AppBar position="static" elevation={0} sx={{ borderRadius: 0 }}>
         <Toolbar>
           <IconButton edge="start" color="inherit" onClick={() => navigate('/dashboard')}>
             <ArrowBack />

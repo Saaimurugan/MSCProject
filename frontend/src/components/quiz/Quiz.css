@@ -1,7 +1,7 @@
 .quiz-container {
   min-height: 100vh;
   background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
-  padding: 20px;
+  padding: 30px 20px 20px 20px;
 }
 
 .quiz-header {
@@ -30,49 +30,49 @@
 }
 
 .quiz-progress {
-  margin-bottom: 35px;
+  margin-bottom: 20px;
   background: white;
-  padding: 20px;
-  border-radius: 15px;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+  padding: 12px 16px;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
 }
 
 .progress-bar {
   background: #e8ecf1;
-  border-radius: 12px;
-  height: 12px;
-  margin-bottom: 15px;
+  border-radius: 8px;
+  height: 8px;
+  margin-bottom: 8px;
   overflow: hidden;
-  box-shadow: inset 0 2px 4px rgba(0,0,0,0.06);
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.06);
 }
 
 .progress-fill {
   background: linear-gradient(90deg, #667eea, #764ba2);
   height: 100%;
-  border-radius: 12px;
+  border-radius: 8px;
   transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 1px 4px rgba(102, 126, 234, 0.4);
 }
 
 .question-counter {
   text-align: center;
-  color: #555;
-  font-weight: 600;
-  font-size: 1rem;
+  color: #666;
+  font-weight: 500;
+  font-size: 0.85rem;
 }
 
 .question-navigation {
   display: flex;
   justify-content: center;
-  gap: 12px;
-  margin-bottom: 35px;
+  gap: 8px;
+  margin-bottom: 20px;
   flex-wrap: wrap;
 }
 
 .nav-dot {
-  width: 45px;
-  height: 45px;
-  border-radius: 12px;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
   border: 2px solid #ddd;
   background: white;
   color: #666;
@@ -81,22 +81,22 @@
   align-items: center;
   justify-content: center;
   font-weight: 600;
-  font-size: 1rem;
+  font-size: 0.85rem;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
 
 .nav-dot:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
 }
 
 .nav-dot.active {
   border-color: #667eea;
   background: linear-gradient(135deg, #667eea, #764ba2);
   color: white;
-  transform: scale(1.1);
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+  transform: scale(1.05);
+  box-shadow: 0 2px 10px rgba(102, 126, 234, 0.3);
 }
 
 .nav-dot.answered {
@@ -310,14 +310,24 @@
     padding: 20px;
   }
   
+  .quiz-progress {
+    padding: 10px 12px;
+    margin-bottom: 15px;
+  }
+  
+  .question-counter {
+    font-size: 0.8rem;
+  }
+  
   .question-navigation {
-    gap: 5px;
+    gap: 6px;
+    margin-bottom: 15px;
   }
   
   .nav-dot {
-    width: 35px;
-    height: 35px;
-    font-size: 14px;
+    width: 32px;
+    height: 32px;
+    font-size: 0.8rem;
   }
   
   .quiz-controls {
@@ -1010,19 +1020,74 @@
   color: #bdc3c7;
 }
 
-/* Quiz Controls at Top */
-.quiz-controls-top {
-  margin-top: 0;
+/* Quiz Controls at Top with Course/Subject Info */
+.quiz-controls-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 30px;
-  padding: 20px;
+  padding: 20px 25px;
   background: white;
   border-radius: 15px;
   box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.quiz-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.quiz-course,
+.quiz-subject {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #2c3e50;
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e8ecf1 100%);
+  border-radius: 8px;
+}
+
+.quiz-separator {
+  color: #bdc3c7;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.quiz-controls-header .quiz-controls {
+  display: flex;
+  gap: 12px;
+  margin: 0;
 }
 
 @media (max-width: 768px) {
-  .quiz-controls-top {
-    padding: 15px;
-    margin-bottom: 25px;
+  .quiz-controls-header {
+    flex-direction: column;
+    padding: 18px;
+    gap: 20px;
+  }
+  
+  .quiz-info {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .quiz-controls-header .quiz-controls {
+    width: 100%;
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .quiz-controls-header .quiz-controls button {
+    width: 100%;
+  }
+  
+  .quiz-course,
+  .quiz-subject {
+    font-size: 0.9rem;
+    padding: 6px 12px;
   }
 }

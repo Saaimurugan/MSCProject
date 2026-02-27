@@ -90,21 +90,24 @@ const ResultsReport = () => {
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     
-    // Convert to IST (UTC+5:30)
-    const istDate = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+    // Add 5 hours 30 minutes to convert UTC to IST
+    const istOffset = 5.5 * 60 * 60 * 1000; // IST is UTC+5:30
+    const istDate = new Date(date.getTime() + istOffset);
     
-    // Format as dd/mm/yyyy
+    // Format as dd/mm/yyyy (Indian date format) - use regular methods, not UTC
     const day = String(istDate.getDate()).padStart(2, '0');
     const month = String(istDate.getMonth() + 1).padStart(2, '0');
     const year = istDate.getFullYear();
     
-    // Format time as HH:MM AM/PM
+    // Format time as 12-hour with AM/PM - use regular methods, not UTC
     const hours = istDate.getHours();
     const minutes = String(istDate.getMinutes()).padStart(2, '0');
     const ampm = hours >= 12 ? 'PM' : 'AM';
     const displayHours = hours % 12 || 12;
     
-    return `${day}/${month}/${year} ${displayHours}:${minutes} ${ampm}`;
+    const formatted = `${day}/${month}/${year} ${displayHours}:${minutes} ${ampm}`;
+    console.log('Date conversion:', { input: dateString, utc: date.toISOString(), ist: formatted });
+    return formatted;
   };
 
   const handleViewDetails = (result) => {

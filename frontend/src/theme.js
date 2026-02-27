@@ -116,6 +116,7 @@ const theme = createTheme({
     MuiCard: {
       styleOverrides: {
         root: {
+          width:'300px',
           borderRadius: 16,
           boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
           border: '1px solid rgba(0, 0, 0, 0.05)',

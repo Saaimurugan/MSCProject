@@ -170,7 +170,7 @@ const Dashboard = ({ onLogout }) => {
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-      <AppBar position="static" elevation={0}>
+      <AppBar position="static" elevation={0} sx={{ borderRadius: 0 }}>
         <Toolbar>
           <School sx={{ mr: 2 }} />
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
@@ -212,7 +212,7 @@ const Dashboard = ({ onLogout }) => {
         </Toolbar>
       </AppBar>
 
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Container maxWidth="xl" sx={{ py: 4 }}>
         {/* Welcome Section */}
         <Box mb={4}>
           <Typography variant="h4" gutterBottom>
@@ -303,7 +303,20 @@ const Dashboard = ({ onLogout }) => {
                   </Typography>
                   <Grid container spacing={3}>
                     {templateList.map((template) => (
-                      <Grid item xs={12} sm={6} md={4} key={template.template_id}>
+                      <Grid 
+                        item 
+                        xs={12} 
+                        sm={4} 
+                        md={4} 
+                        lg={4} 
+                        xl={4}
+                        key={template.template_id} 
+                        sx={{ 
+                          display: 'flex',
+                          flexBasis: { xs: '100%', sm: '33.333%' },
+                          maxWidth: { xs: '100%', sm: '33.333%' }
+                        }}
+                      >
                         <Card 
                           elevation={0}
                           sx={{ 
@@ -358,7 +371,8 @@ const Dashboard = ({ onLogout }) => {
                             <Typography variant="body2" color="text.secondary">
                               Created: {(() => {
                                 const date = new Date(template.created_at);
-                                const istDate = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+                                const istOffset = 5.5 * 60 * 60 * 1000;
+                                const istDate = new Date(date.getTime() + istOffset);
                                 const day = String(istDate.getDate()).padStart(2, '0');
                                 const month = String(istDate.getMonth() + 1).padStart(2, '0');
                                 const year = istDate.getFullYear();

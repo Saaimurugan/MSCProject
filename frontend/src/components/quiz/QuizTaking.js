@@ -237,11 +237,6 @@ const QuizTaking = () => {
 
   return (
     <div className="quiz-container">
-      <div className="quiz-header">
-        <h1>{template.title}</h1>
-        <p className="quiz-details">{template.subject} - {template.course}</p>
-      </div>
-
       <div className="quiz-progress">
         <div className="progress-bar">
           <div className="progress-fill" style={{ width: `${progress}%` }}></div>
@@ -265,31 +260,39 @@ const QuizTaking = () => {
         ))}
       </div>
 
-      <div className="quiz-controls quiz-controls-top">
-        <button 
-          onClick={previousQuestion} 
-          disabled={currentQuestionIndex === 0}
-          className="btn-secondary"
-        >
-          Previous
-        </button>
+      <div className="quiz-controls-header">
+        <div className="quiz-info">
+          <span className="quiz-course">{template.course}</span>
+          <span className="quiz-separator">•</span>
+          <span className="quiz-subject">{template.subject}</span>
+        </div>
+        
+        <div className="quiz-controls">
+          <button 
+            onClick={previousQuestion} 
+            disabled={currentQuestionIndex === 0}
+            className="btn-secondary"
+          >
+            Previous
+          </button>
 
-        {currentQuestionIndex === template.questions.length - 1 ? (
-          <button 
-            onClick={submitQuiz} 
-            disabled={submitting}
-            className="btn-primary submit-btn"
-          >
-            {submitting ? 'Submitting...' : 'Submit Quiz'}
-          </button>
-        ) : (
-          <button 
-            onClick={nextQuestion}
-            className="btn-primary"
-          >
-            Next
-          </button>
-        )}
+          {currentQuestionIndex === template.questions.length - 1 ? (
+            <button 
+              onClick={submitQuiz} 
+              disabled={submitting}
+              className="btn-primary submit-btn"
+            >
+              {submitting ? 'Submitting...' : 'Submit Quiz'}
+            </button>
+          ) : (
+            <button 
+              onClick={nextQuestion}
+              className="btn-primary"
+            >
+              Next
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="question-box">
