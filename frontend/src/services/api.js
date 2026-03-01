@@ -10,6 +10,41 @@ const api = axios.create({
   },
 });
 
+// Add request interceptor to include user role in headers
+api.interceptors.request.use((config) => {
+  const userStr = localStorage.getItem('user');
+  if (userStr) {
+    try {
+      const user = JSON.parse(userStr);
+      if (user.role) {
+        config.headers['X-User-Role'] = user.role;
+      }
+    } catch (e) {
+      console.error('Failed to parse user from localStorage', e);
+    }
+  }
+  return config;
+});
+
+// Authentication API calls
+export const authAPI = {
+  login: (username, password) => api.post('/users/login', { username, password }),
+};
+
+// User Management API calls (Admin only)
+export const usersAPI = {
+  getUsers: (filters) => {
+    const params = {};
+    if (filters?.role) params.role = filters.role;
+    if (filters?.is_active !== undefined) params.is_active = filters.is_active;
+    return api.get('/users', { params });
+  },
+  getUserById: (userId) => api.get(`/users/${userId}`),
+  createUser: (userData) => api.post('/users', userData),
+  updateUser: (userId, userData) => api.put(`/users/${userId}`, userData),
+  deleteUser: (userId) => api.delete(`/users/${userId}`),
+};
+
 // Templates API calls
 export const templatesAPI = {
   getTemplates: (subject, course) => {

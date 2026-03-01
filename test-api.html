@@ -1,0 +1,227 @@
+<html lang="en">
+    <!DOCTYPE html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Test Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 5px;
+            border-left: 4px solid #4CAF50;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            background: white;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .success {
+            border-left: 4px solid #4CAF50;
+            background: #f1f8f4;
+        }
+        .error {
+            border-left: 4px solid #f44336;
+            background: #fef1f0;
+        }
+        .status {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .status.success {
+            color: #4CAF50;
+        }
+        .status.error {
+            color: #f44336;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 API Test Page</h1>
+        <p>This page tests the API endpoints directly to verify they're working correctly.</p>
+        
+        <div class="test-section">
+            <h3>Test 1: Login Endpoint</h3>
+            <p>Tests POST /users/login with admin credentials</p>
+            <button onclick="testLogin()">Test Login</button>
+            <div id="login-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Test 2: Templates Endpoint</h3>
+            <p>Tests GET /templates</p>
+            <button onclick="testTemplates()">Test Templates</button>
+            <div id="templates-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Test 3: CORS Headers</h3>
+            <p>Checks if CORS headers are present in the response</p>
+            <button onclick="testCORS()">Test CORS</button>
+            <div id="cors-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Test 4: All Tests</h3>
+            <p>Run all tests at once</p>
+            <button onclick="runAllTests()">Run All Tests</button>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'https://48c11a5co1.execute-api.ap-south-1.amazonaws.com/dev';
+
+        function showResult(elementId, success, message, data = null) {
+            const element = document.getElementById(elementId);
+            const statusClass = success ? 'success' : 'error';
+            const statusText = success ? '✓ SUCCESS' : '✗ FAILED';
+            
+            let html = `<div class="result ${statusClass}">`;
+            html += `<div class="status ${statusClass}">${statusText}</div>`;
+            html += `<div>${message}</div>`;
+            if (data) {
+                html += `<div style="margin-top: 10px; color: #666;">Response:</div>`;
+                html += `<div>${JSON.stringify(data, null, 2)}</div>`;
+            }
+            html += `</div>`;
+            
+            element.innerHTML = html;
+        }
+
+        async function testLogin() {
+            const resultId = 'login-result';
+            showResult(resultId, true, 'Testing...', null);
+            
+            try {
+                const response = await fetch(`${API_URL}/users/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: 'admin',
+                        password: 'admin123'
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult(resultId, true, `Login successful! Status: ${response.status}`, data);
+                } else {
+                    showResult(resultId, false, `Login failed with status: ${response.status}`, data);
+                }
+            } catch (error) {
+                showResult(resultId, false, `Error: ${error.message}`, { error: error.toString() });
+            }
+        }
+
+        async function testTemplates() {
+            const resultId = 'templates-result';
+            showResult(resultId, true, 'Testing...', null);
+            
+            try {
+                const response = await fetch(`${API_URL}/templates`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    const count = data.templates ? data.templates.length : 0;
+                    showResult(resultId, true, `Templates loaded! Status: ${response.status}, Count: ${count}`, data);
+                } else {
+                    showResult(resultId, false, `Failed with status: ${response.status}`, data);
+                }
+            } catch (error) {
+                showResult(resultId, false, `Error: ${error.message}`, { error: error.toString() });
+            }
+        }
+
+        async function testCORS() {
+            const resultId = 'cors-result';
+            showResult(resultId, true, 'Testing...', null);
+            
+            try {
+                const response = await fetch(`${API_URL}/templates`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                const corsHeaders = {
+                    'Access-Control-Allow-Origin': response.headers.get('Access-Control-Allow-Origin'),
+                    'Access-Control-Allow-Methods': response.headers.get('Access-Control-Allow-Methods'),
+                    'Access-Control-Allow-Headers': response.headers.get('Access-Control-Allow-Headers'),
+                };
+
+                const hasCORS = corsHeaders['Access-Control-Allow-Origin'] !== null;
+                
+                if (hasCORS) {
+                    showResult(resultId, true, 'CORS headers are present!', corsHeaders);
+                } else {
+                    showResult(resultId, false, 'CORS headers are missing!', corsHeaders);
+                }
+            } catch (error) {
+                showResult(resultId, false, `Error: ${error.message}`, { error: error.toString() });
+            }
+        }
+
+        async function runAllTests() {
+            await testLogin();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            await testTemplates();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            await testCORS();
+        }
+
+        // Auto-run tests on page load
+        window.addEventListener('load', () => {
+            console.log('API Test Page loaded. Click buttons to test endpoints.');
+        });
+    </script>
+</body>
+</html>

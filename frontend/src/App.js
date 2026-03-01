@@ -13,6 +13,7 @@ import QuizResults from './components/quiz/QuizResults';
 import TemplateCreator from './components/templates/TemplateCreator';
 import TemplateEditor from './components/templates/TemplateEditor';
 import ResultsReport from './components/results/ResultsReport';
+import UserManagement from './components/users/UserManagement';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -87,6 +88,14 @@ function App() {
             />
             
             {/* Admin Only Routes */}
+            <Route 
+              path="/users" 
+              element={
+                <AdminRoute>
+                  <UserManagement />
+                </AdminRoute>
+              } 
+            />
             <Route 
               path="/template/create" 
               element={

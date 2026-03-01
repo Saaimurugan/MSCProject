@@ -1,40 +1,43 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import { authAPI } from '../../services/api';
 import './Login.css';
 
 const Login = ({ onLogin }) => {
-  const [username, setUsername] = useState('');
+  const [selectedUser, setSelectedUser] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    
+    if (!selectedUser || !password) {
+      setError('Please enter username and password');
+      return;
+    }
 
-    // Hardcoded credentials
-    const users = {
-      admin: { password: 'admin123', role: 'admin' },
-      student: { password: 'student123', role: 'student' }
-    };
-
-    const user = users[username.toLowerCase()];
-
-    if (user && user.password === password) {
-      // Store user info in localStorage
-      const userInfo = {
-        username: username.toLowerCase(),
-        role: user.role
-      };
-      localStorage.setItem('user', JSON.stringify(userInfo));
+    setLoading(true);
+    
+    try {
+      const response = await authAPI.login(selectedUser, password);
       
-      // Call parent callback
-      onLogin(userInfo);
-      
-      // Navigate to dashboard
-      navigate('/dashboard');
-    } else {
-      setError('Invalid username or password');
+      if (response.data && response.data.user) {
+        const userData = response.data.user;
+        
+        // Store user data in localStorage
+        localStorage.setItem('user', JSON.stringify(userData));
+        
+        // Call parent onLogin callback
+        onLogin(userData);
+      } else {
+        setError('Invalid response from server');
+      }
+    } catch (err) {
+      console.error('Login error:', err);
+      setError(err.response?.data?.error || 'Login failed. Please check your credentials.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -42,20 +45,22 @@ const Login = ({ onLogin }) => {
     <div className="login-container">
       <div className="login-card">
         <div className="login-header">
-          <h1>🎓 AI Evaluate</h1>
-          <p>Assessment Management System</p>
+          <h1>MSC Evaluate</h1>
+          <p>Sign in to continue</p>
         </div>
-
+        
+        {error && <div className="error-message">{error}</div>}
+        
         <form onSubmit={handleSubmit} className="login-form">
           <div className="form-group">
             <label htmlFor="username">Username</label>
             <input
               id="username"
               type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="Enter username"
-              autoFocus
+              value={selectedUser}
+              onChange={(e) => setSelectedUser(e.target.value)}
+              placeholder="Enter your username"
+              disabled={loading}
               required
             />
           </div>
@@ -67,23 +72,29 @@ const Login = ({ onLogin }) => {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter password"
+              placeholder="Enter your password"
+              disabled={loading}
               required
             />
           </div>
 
-          {error && <div className="error-message">{error}</div>}
-
-          <button type="submit" className="btn-login">
-            Login
+          <button 
+            type="submit" 
+            className="btn-login"
+            disabled={loading}
+          >
+            {loading ? 'Logging in...' : 'Login'}
           </button>
         </form>
 
         <div className="login-info">
-          <p className="info-title">Demo Credentials:</p>
+          <p className="info-title">Default Credentials:</p>
           <div className="credentials">
             <div className="credential-item">
               <strong>Admin:</strong> admin / admin123
+            </div>
+            <div className="credential-item">
+              <strong>Tutor:</strong> tutor / tutor123
             </div>
             <div className="credential-item">
               <strong>Student:</strong> student / student123

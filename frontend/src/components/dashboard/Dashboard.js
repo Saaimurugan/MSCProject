@@ -185,6 +185,14 @@ const Dashboard = ({ onLogout }) => {
             <>
               <Button 
                 color="inherit" 
+                onClick={() => navigate('/users')}
+                sx={{ mr: 2 }}
+              >
+                👥 Users
+              </Button>
+              
+              <Button 
+                color="inherit" 
                 onClick={() => navigate('/results')}
                 sx={{ mr: 2 }}
               >
